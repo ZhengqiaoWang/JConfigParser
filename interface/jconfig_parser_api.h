@@ -103,6 +103,9 @@ namespace Joger
             std::type_index m_tpIndex; ///< 保存的类型
         };
 
+        class ValNode;
+        class VecNode;
+        class MapNode;
         class NodeBase
         {
         public:
@@ -110,21 +113,108 @@ namespace Joger
             {
                 VAL,
                 VEC,
-                DICT
+                MAP
             };
 
             NodeType getNodeType() { return m_node_type; }
-            size_t getSubNodeCnt() { return m_subnode_vec.size(); }
+            // size_t getSubNodeCnt() { return m_subnode_vec.size(); }
+            
 
         protected:
             NodeType m_node_type{NodeType::VAL};
-            std::vector<NodeBase *> m_subnode_vec;
+            // std::vector<NodeBase *> m_subnode_vec;
         };
 
         class ValNode : public NodeBase
         {
+        public:
+            ValNode()
+            {
+                m_node_type=NodeType::VAL;
+            }
+
+        public:
+            void setValue(const Any &val)
+            {
+                m_val = val;
+            }
+
+            Any &getValue() { return m_val; }
+
+        private:
+            Any m_val;
+        };
+
+        class VecNode : public NodeBase
+        {
+        public:
+            VecNode()
+            {
+                m_node_type = NodeType::VEC;
+            }
+
+        public:
+            void add(Any &&val) { m_val_vec.emplace_back(std::move(val)); }
+            Any &at(size_t idx) { return m_val_vec[idx]; }
+            Any &operator[](size_t n) { return at(n); }
+            std::vector<Any>::iterator del(const std::vector<Any>::iterator &iter) { return m_val_vec.erase(iter); }
+
+            std::vector<Any>::iterator begin() { return m_val_vec.begin(); }
+            std::vector<Any>::iterator end() { return m_val_vec.end(); }
+        private:
+            std::vector<Any> m_val_vec;
+        };
+
+        class MapNode : public NodeBase
+        {
+        public:
+            MapNode()
+            {
+                m_node_type = NodeType::MAP;
+            }
         };
     }
+
+    /*
+     *
+     {
+        "h1":"abc",
+        "h2":{
+            "h21":"123",
+            "h22":[1,2,3],
+            "h23":["1","2","3"]
+        },
+        "h3":[
+            {
+                "h311":"123",
+                "h312":4321
+            },
+            {
+                "h321":"aaa",
+                "h322":234.2
+            }
+        ]
+     } 
+     map{
+        value,
+        map{
+            value,
+            vec(value),
+            vec(value)
+        },
+        vec(
+            map{
+                value,
+                value
+            },
+            map{
+                value,
+                value
+            }
+        )
+     }
+     * 
+     */
 
 }
 
