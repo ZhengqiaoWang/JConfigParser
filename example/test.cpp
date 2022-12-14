@@ -1,4 +1,4 @@
-#include "jconfig_parser_api.h"
+#include "JConfigParser/model/node.h"
 #include <string>
 #include <iostream>
 using namespace std;
@@ -7,33 +7,57 @@ using namespace Joger::ConfigParser;
 
 int main(int argc, char const *argv[])
 {
-    Any a = 1;
-    Any b = string("hello, world");
-    Any c;
-    std::vector<std::string> td{"123", "hahaha"};
-    Any d = td;
-
-    cout << std::boolalpha;
-    cout << "a is null:" << a.isNull() << endl;
-    cout << "b is null:" << b.isNull() << endl;
-    cout << "c is null:" << c.isNull() << endl;
-
-    cout << "----------------------" << endl;
-    cout << "a is int:" << a.is<int>() << endl;
-    cout << "a is string:" << a.is<string>() << endl;
-    cout << "a cast to int:" << a.cast<int>() << endl;
-    a.cast<int>() = 123;
-    cout << "a cast to int new:" << a.cast<int>() << endl;
-    cout << "b cast to string:" << b.cast<string>() << endl;
-    for (auto &item : d.cast<std::vector<std::string>>())
+    /*
     {
-        cout << item << endl;
-    }
-    cout << "----------------------" << endl;
-    c = a;
-    cout << "c is int:" << c.is<int>() << endl;
-    cout << "c is string:" << c.is<string>() << endl;
-    cout << "c cast to int:" << c.cast<int>() << endl;
-    cout << "c cast to string:" << c.cast<string>() << endl;
+        "h1":"abc",
+        "h2":{
+            "h21":"123",
+            "h22":[1,2,3],
+            "h23":["1","2","3"]
+        },
+        "h3":[
+            {
+                "h311":"123",
+                "h312":4321
+            },
+            {
+                "h321":"aaa",
+                "h322":234.2
+            }
+        ]
+     }
+     */
+
+    MapNode *root = new MapNode();
+    root->addSubNode("h1", ValNode(std::string("abc")));
+    root->addSubNode("h2", MapNode());
+    auto h2 = dynamic_cast<MapNode*>((*root)["h2"]);
+    h2->addSubNode("h21",ValNode(std::string("123")));
+    h2->addSubNode("h22",VecNode());
+    auto h22 = dynamic_cast<VecNode*>((*h2)["h22"]);
+    h22->emplace_back(ValNode(1));
+    h22->emplace_back(ValNode(2));
+    h22->emplace_back(ValNode(3));
+
+    h2->addSubNode("h23",VecNode());
+    auto h23 = dynamic_cast<VecNode*>((*h2)["h23"]);
+    h23->emplace_back(ValNode(std::string("1")));
+    h23->emplace_back(ValNode(std::string("2")));
+    h23->emplace_back(ValNode(std::string("3")));
+
+    root->addSubNode("h3", VecNode(
+        {
+            MapNode({
+                std::make_pair("h311", ValNode(std::string("123"))),
+                std::make_pair("h312", ValNode(123))
+            }),
+            MapNode({
+                std::make_pair("h321", ValNode(std::string("123"))),
+                std::make_pair("h322", ValNode(123.3))
+            })
+        }
+    ));
+    
+    printf("%s\n", root->toString().c_str());
     return 0;
 }
