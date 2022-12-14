@@ -4,6 +4,7 @@
 #include "JConfigParser/model/any.h"
 #include <vector>
 #include <map>
+#include <memory>
 
 namespace Joger
 {
@@ -20,6 +21,9 @@ namespace Joger
         class MapNode;
         class NodeBase
         {
+        public:
+            virtual ~NodeBase() {}
+
         public:
             NodeType getNodeType() { return m_node_type; }
             virtual std::string toString() = 0;
@@ -57,7 +61,7 @@ namespace Joger
 
         class VecNode : public NodeBase
         {
-            using VecNodeItemType = NodeBase *;
+            using VecNodeItemType = std::shared_ptr<NodeBase>;
             using VecNodeValType = std::vector<VecNodeItemType>;
             using VecNodeValIterType = VecNodeValType::iterator;
 
@@ -66,29 +70,29 @@ namespace Joger
             {
                 m_node_type = NodeType::VEC;
             }
-            VecNode(const VecNode& src)
+            VecNode(const VecNode &src)
             {
                 m_node_type = NodeType::VEC;
                 m_val_vec = src.m_val_vec;
             }
-            VecNode(const VecNodeValType& src)
+            VecNode(const VecNodeValType &src)
             {
                 m_node_type = NodeType::VEC;
-                m_val_vec = src;
+                m_val_vec = std::move(src);
             }
-            template<typename T>
+            template <typename T>
             VecNode(const std::initializer_list<T> &src)
             {
                 m_node_type = NodeType::VEC;
-                for(auto &item : src)
+                for (auto &item : src)
                 {
-                    emplace_back(item);
+                    emplace_back(std::move(item));
                 }
             }
 
         public:
             template <typename SubNodeType>
-            void emplace_back(const SubNodeType &val) { m_val_vec.emplace_back(dynamic_cast<NodeBase *>(new SubNodeType(val))); }
+            void emplace_back(const SubNodeType &val) { m_val_vec.emplace_back(std::shared_ptr<NodeBase>(dynamic_cast<NodeBase *>(new SubNodeType(val)))); }
             VecNodeItemType &at(size_t idx) { return m_val_vec[idx]; }
             VecNodeItemType &operator[](size_t n) { return at(n); }
             VecNodeValIterType del(const VecNodeValIterType &iter) { return m_val_vec.erase(iter); }
@@ -106,7 +110,7 @@ namespace Joger
         class MapNode : public NodeBase
         {
             using MapNodeKeyType = std::string;
-            using MapNodeItemType = NodeBase *;
+            using MapNodeItemType = std::shared_ptr<NodeBase>;
             using MapNodeValType = std::map<std::string, MapNodeItemType>;
             using MapNodeValIterType = MapNodeValType::iterator;
 
@@ -115,37 +119,37 @@ namespace Joger
             {
                 m_node_type = NodeType::MAP;
             }
-            MapNode(const MapNode& src)
+            MapNode(const MapNode &src)
             {
                 m_node_type = NodeType::MAP;
                 m_node_ptr_map = src.m_node_ptr_map;
             }
-            MapNode(const MapNodeValType& src)
+            MapNode(const MapNodeValType &src)
             {
                 m_node_type = NodeType::MAP;
-                m_node_ptr_map = src;
+                m_node_ptr_map = std::move(src);
             }
-            template<typename T>
+            template <typename T>
             MapNode(const std::initializer_list<T> &src)
             {
                 m_node_type = NodeType::VEC;
-                for(auto &item : src)
+                for (auto &item : src)
                 {
-                    addSubNode(item.first, item.second);
+                    addSubNode(std::move(item.first), std::move(item.second));
                 }
             }
 
         public:
             template <typename SubNodeType>
-            void addSubNode(const MapNodeKeyType& key, const SubNodeType &val)
+            void addSubNode(const MapNodeKeyType &key, const SubNodeType &val)
             {
-                m_node_ptr_map.emplace(std::make_pair(key, dynamic_cast<MapNodeItemType>(new SubNodeType(val))));
+                m_node_ptr_map.emplace(std::make_pair(key, std::shared_ptr<NodeBase>(dynamic_cast<NodeBase *>(new SubNodeType(val)))));
             }
-            void delSubNode(const MapNodeKeyType& key)
+            void delSubNode(const MapNodeKeyType &key)
             {
                 m_node_ptr_map.erase(key);
             }
-            MapNodeItemType &operator[](const MapNodeKeyType& key) { return m_node_ptr_map[key]; }
+            MapNodeItemType &operator[](const MapNodeKeyType &key) { return m_node_ptr_map[key]; }
 
             MapNodeValIterType find(const MapNodeKeyType &key) { return m_node_ptr_map.find(key); }
             MapNodeValIterType begin() { return m_node_ptr_map.begin(); }
@@ -153,7 +157,7 @@ namespace Joger
             virtual std::string toString() override;
 
         private:
-            std::map<std::string, NodeBase *> m_node_ptr_map;
+            MapNodeValType m_node_ptr_map;
         };
 
         /* =========================== Tools ===========================*/
@@ -199,22 +203,22 @@ namespace Joger
             std::string result{"["};
             for (size_t i = 0; i < m_val_vec.size(); ++i)
             {
-                auto *ptr = m_val_vec[i];
+                auto ptr = m_val_vec[i];
                 switch (ptr->getNodeType())
                 {
                 case NodeType::VAL:
                 {
-                    result += dynamic_cast<ValNode *>(ptr)->toString();
+                    result += dynamic_cast<ValNode *>(ptr.get())->toString();
                     break;
                 }
                 case NodeType::VEC:
                 {
-                    result += dynamic_cast<VecNode *>(ptr)->toString();
+                    result += dynamic_cast<VecNode *>(ptr.get())->toString();
                     break;
                 }
                 case NodeType::MAP:
                 {
-                    result += dynamic_cast<MapNode *>(ptr)->toString();
+                    result += dynamic_cast<MapNode *>(ptr.get())->toString();
                     break;
                 }
                 default:
@@ -243,17 +247,17 @@ namespace Joger
                 {
                 case NodeType::VAL:
                 {
-                    result += dynamic_cast<ValNode *>(ptr)->toString();
+                    result += dynamic_cast<ValNode *>(ptr.get())->toString();
                     break;
                 }
                 case NodeType::VEC:
                 {
-                    result += dynamic_cast<VecNode *>(ptr)->toString();
+                    result += dynamic_cast<VecNode *>(ptr.get())->toString();
                     break;
                 }
                 case NodeType::MAP:
                 {
-                    result += dynamic_cast<MapNode *>(ptr)->toString();
+                    result += dynamic_cast<MapNode *>(ptr.get())->toString();
                     break;
                 }
                 default:

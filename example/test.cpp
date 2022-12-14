@@ -27,20 +27,19 @@ int main(int argc, char const *argv[])
         ]
      }
      */
-
-    MapNode *root = new MapNode();
+    auto root = std::make_shared<MapNode>();
     root->addSubNode("h1", ValNode(std::string("abc")));
     root->addSubNode("h2", MapNode());
-    auto h2 = dynamic_cast<MapNode*>((*root)["h2"]);
+    auto h2 = dynamic_cast<MapNode*>((*root)["h2"].get());
     h2->addSubNode("h21",ValNode(std::string("123")));
     h2->addSubNode("h22",VecNode());
-    auto h22 = dynamic_cast<VecNode*>((*h2)["h22"]);
+    auto h22 = dynamic_cast<VecNode*>((*h2)["h22"].get());
     h22->emplace_back(ValNode(1));
     h22->emplace_back(ValNode(2));
     h22->emplace_back(ValNode(3));
 
     h2->addSubNode("h23",VecNode());
-    auto h23 = dynamic_cast<VecNode*>((*h2)["h23"]);
+    auto h23 = dynamic_cast<VecNode*>((*h2)["h23"].get());
     h23->emplace_back(ValNode(std::string("1")));
     h23->emplace_back(ValNode(std::string("2")));
     h23->emplace_back(ValNode(std::string("3")));
