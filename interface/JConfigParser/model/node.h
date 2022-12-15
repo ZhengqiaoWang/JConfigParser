@@ -11,16 +11,6 @@ namespace Joger
 {
     namespace ConfigParser
     {
-
-/**
- * @brief Get Sub Node
- * @param type sub node type: NodeType
- * @param root root node shared_ptr
- * @param key sub node's string key
- *
- */
-#define JCP_GET_SUB_NODE_PTR(type, root, key) std::dynamic_pointer_cast<type>((*root)[key])
-
         enum class NodeType
         {
             VAL,
@@ -180,6 +170,15 @@ namespace Joger
         };
 
         /* =========================== Tools ===========================*/
+
+/**
+ * @brief Get Sub Node
+ * @param type sub node type: NodeType
+ * @param root root node shared_ptr
+ * @param key sub node's string key
+ *
+ */
+#define JCP_GET_SUB_NODE_PTR(type, root, key) std::dynamic_pointer_cast<type>((*root)[key])
 
         /* =========================== ValNode ===========================*/
         inline std::string ValNode::toString()
