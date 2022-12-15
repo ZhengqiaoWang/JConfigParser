@@ -111,6 +111,8 @@ namespace Joger
 
             virtual std::string toString() override;
 
+            size_t size() { return m_val_vec.size(); }
+
         private:
             VecNodeValType m_val_vec;
         };
@@ -165,11 +167,20 @@ namespace Joger
             MapNodeValIterType end() { return m_node_ptr_map.end(); }
             virtual std::string toString() override;
 
+            size_t size() { return m_node_ptr_map.size(); }
+
         private:
             MapNodeValType m_node_ptr_map;
         };
 
         /* =========================== Tools ===========================*/
+/**
+ * @brief Get Val Node PTR
+ * @param type sub node type: NodeType
+ * @param root root node shared_ptr
+ *
+ */
+#define JCP_GET_CUR_NODE_PTR(type, item_ptr) std::dynamic_pointer_cast<type>((item_ptr))
 
 /**
  * @brief Get Sub Node
@@ -179,6 +190,8 @@ namespace Joger
  *
  */
 #define JCP_GET_SUB_NODE_PTR(type, root, key) std::dynamic_pointer_cast<type>((*root)[key])
+
+
 
         /* =========================== ValNode ===========================*/
         inline std::string ValNode::toString()
