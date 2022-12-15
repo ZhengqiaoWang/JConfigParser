@@ -5,11 +5,22 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <iostream>
 
 namespace Joger
 {
     namespace ConfigParser
     {
+
+/**
+ * @brief Get Sub Node
+ * @param type sub node type: NodeType
+ * @param root root node shared_ptr
+ * @param key sub node's string key
+ *
+ */
+#define JCP_GET_SUB_NODE_PTR(type, root, key) std::dynamic_pointer_cast<type>((*root)[key])
+
         enum class NodeType
         {
             VAL,
@@ -31,32 +42,40 @@ namespace Joger
         protected:
             NodeType m_node_type{NodeType::VAL};
         };
+
         class ValNode : public NodeBase
         {
+            using ValNodeValType = Model::Any;
+
         public:
             ValNode()
             {
                 m_node_type = NodeType::VAL;
             }
-            ValNode(const Model::Any &val)
+            ValNode(const ValNode &src)
             {
                 m_node_type = NodeType::VAL;
-                m_val = val;
+                m_val = src.m_val;
+            }
+            ValNode(const ValNodeValType &src)
+            {
+                m_node_type = NodeType::VAL;
+                m_val = std::move(src);
             }
 
         public:
-            void setValue(const Model::Any &val)
+            void setValue(const ValNodeValType &val)
             {
                 m_val = val;
             }
 
-            Model::Any &getValue() { return m_val; }
+            ValNodeValType &getValue() { return m_val; }
 
         public:
             virtual std::string toString() override;
 
         private:
-            Model::Any m_val;
+            ValNodeValType m_val;
         };
 
         class VecNode : public NodeBase
