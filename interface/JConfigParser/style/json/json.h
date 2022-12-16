@@ -128,6 +128,10 @@ namespace Joger
                     m_container_deque.push_back(new_node);
                     break;
                 }
+                default:
+                {
+                    break;
+                }
                 }
             }
             void doWhenSignalRightBracket(size_t i)
@@ -155,6 +159,10 @@ namespace Joger
                     m_container_deque.push_back(new_node);
                     break;
                 }
+                default:
+                {
+                    break;
+                }
                 }
             }
 
@@ -179,6 +187,10 @@ namespace Joger
                 {
                     auto cur_node_with_type = JCP_GET_CUR_NODE_PTR(VecNode, cur_node);
                     cur_node_with_type->emplace_back(autoFormatVal(item_val));
+                    break;
+                }
+                default:
+                {
                     break;
                 }
                 }
