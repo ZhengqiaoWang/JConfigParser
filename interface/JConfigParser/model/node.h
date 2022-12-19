@@ -101,7 +101,11 @@ namespace Joger
 
         public:
             template <typename SubNodeType>
-            void emplace_back(const SubNodeType &val) { m_val_vec.emplace_back(std::shared_ptr<NodeBase>(dynamic_cast<NodeBase *>(new SubNodeType(val)))); }
+            std::shared_ptr<SubNodeType> emplace_back(const SubNodeType &val)
+            {
+                m_val_vec.emplace_back(std::shared_ptr<NodeBase>(dynamic_cast<NodeBase *>(new SubNodeType(val))));
+                return std::dynamic_pointer_cast<SubNodeType>(m_val_vec.back());
+            }
             VecNodeItemType &at(size_t idx) { return m_val_vec[idx]; }
             VecNodeItemType &operator[](size_t n) { return at(n); }
             VecNodeValIterType del(const VecNodeValIterType &iter) { return m_val_vec.erase(iter); }
@@ -152,9 +156,10 @@ namespace Joger
 
         public:
             template <typename SubNodeType>
-            void addSubNode(const MapNodeKeyType &key, const SubNodeType &val)
+            std::shared_ptr<SubNodeType> addSubNode(const MapNodeKeyType &key, const SubNodeType &val)
             {
-                m_node_ptr_map.emplace(std::make_pair(key, std::shared_ptr<NodeBase>(dynamic_cast<NodeBase *>(new SubNodeType(val)))));
+                m_node_ptr_map.emplace(std::make_pair(key, std::shared_ptr<NodeBase>(new SubNodeType(val))));
+                return std::dynamic_pointer_cast<SubNodeType>(m_node_ptr_map[key]);
             }
             void delSubNode(const MapNodeKeyType &key)
             {
@@ -190,8 +195,6 @@ namespace Joger
  *
  */
 #define JCP_GET_SUB_NODE_PTR(type, root, key) std::dynamic_pointer_cast<type>((*root)[key])
-
-
 
         /* =========================== ValNode ===========================*/
         inline std::string ValNode::toString()
