@@ -10,6 +10,33 @@ namespace Joger
     namespace Model
     {
         /**
+         * @brief 转换异常类，用于处理从Any转换为各类问题时的异常
+         * 自定义该类的原因是std::bad_cast提示信息不完整。
+         * 有该类的原因是dynamic_cast<ptr>不会提示std::bad_cast
+         *
+         */
+        class BadCast : public std::exception
+        {
+        public:
+            BadCast(const std::string &src_type, const std::string &tgt_type, const std::string &err_msg) : m_src_type(src_type), m_target_type(tgt_type), m_usr_err_msg(err_msg)
+            {
+                m_err_msg = "Cannot cast from type[" + m_src_type + "] to type[" + m_target_type + "]. " + m_usr_err_msg;
+            }
+
+            virtual const char *what() const noexcept override
+            {
+
+                return m_err_msg.c_str();
+            }
+
+        private:
+            std::string m_src_type{"{unknowntype}"};
+            std::string m_target_type{"{unknowntype}"};
+            std::string m_usr_err_msg{""};
+            std::string m_err_msg{""};
+        };
+
+        /**
          * @brief 参考https://www.cnblogs.com/qicosmos/p/3420095.html实现Any类
          *
          */
@@ -29,7 +56,7 @@ namespace Joger
 
             /// @note 类型不相同
             template <class U>
-            bool is() const
+            bool is() const noexcept
             {
                 return m_tpIndex == std::type_index(typeid(U));
             }
@@ -40,8 +67,7 @@ namespace Joger
             {
                 if (!is<U>())
                 {
-                    printf("cannot cast [%s] to [%s]\n", m_tpIndex.name(), typeid(U).name());
-                    throw std::bad_cast();
+                    throw BadCast(m_tpIndex.name(), typeid(U).name(), "unexpect cast");
                 }
 
                 /// @note 将基类指针转为实际的派生类型

@@ -13,7 +13,18 @@ TEST_CASE("test Any basic type")
     CHECK(a.is<int>());
     a = 123.4;
     CHECK(a.is<double>());
-    CHECK_THROWS_AS(a.cast<int>(), std::bad_cast);
+
+    try
+    {
+        a.cast<int>();
+    }
+    catch(const BadCast& e)
+    {
+        std::cout << e.what() << '\n';
+    }
+
+    CHECK_THROWS_AS(a.cast<int>(), BadCast);
+
 }
 
 TEST_CASE("test Any c11 types")

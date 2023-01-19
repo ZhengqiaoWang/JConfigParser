@@ -28,6 +28,7 @@ namespace Joger
         public:
             NodeType getNodeType() { return m_node_type; }
             virtual std::string toString() = 0;
+            
 
         protected:
             NodeType m_node_type{NodeType::VAL};
