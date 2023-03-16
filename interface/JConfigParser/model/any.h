@@ -5,6 +5,7 @@
 #include <typeinfo>
 #include <type_traits>
 #include <exception>
+#include <cstdio>
 namespace Joger
 {
     namespace Model
