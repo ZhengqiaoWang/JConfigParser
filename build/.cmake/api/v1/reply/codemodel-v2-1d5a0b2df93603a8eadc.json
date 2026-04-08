@@ -1,0 +1,87 @@
+{
+	"configurations" : 
+	[
+		{
+			"abstractTargets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "JConfigParser::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-JConfigParser-Debug-4ce4c8a45b00c9571037.json",
+					"name" : "JConfigParser",
+					"projectIndex" : 0
+				}
+			],
+			"directories" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0
+					],
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f040eec181a89de70dbe.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "JConfigParser",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "example::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-example-Debug-bf0a35421caf37254101.json",
+					"name" : "example",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_jconfigparser::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_jconfigparser-Debug-0ca9cc99f349b7ec151d.json",
+					"name" : "test_jconfigparser",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/esunny/Documents/code/JConfigParser/build",
+		"source" : "C:/Users/esunny/Documents/code/JConfigParser"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 10
+	}
+}

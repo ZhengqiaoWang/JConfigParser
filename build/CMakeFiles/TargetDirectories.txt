@@ -1,0 +1,5 @@
+C:/Users/esunny/Documents/code/JConfigParser/build/CMakeFiles/example.dir
+C:/Users/esunny/Documents/code/JConfigParser/build/CMakeFiles/test_jconfigparser.dir
+C:/Users/esunny/Documents/code/JConfigParser/build/CMakeFiles/test.dir
+C:/Users/esunny/Documents/code/JConfigParser/build/CMakeFiles/edit_cache.dir
+C:/Users/esunny/Documents/code/JConfigParser/build/CMakeFiles/rebuild_cache.dir

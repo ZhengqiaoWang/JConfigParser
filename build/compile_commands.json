@@ -1,0 +1,14 @@
+[
+{
+  "directory": "C:/Users/esunny/Documents/code/JConfigParser/build",
+  "command": "C:\\mingw64\\bin\\g++.exe -DRAPIDJSON_HAS_STDSTRING @CMakeFiles/example.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\example.dir\\example\\example.cpp.obj -c C:\\Users\\esunny\\Documents\\code\\JConfigParser\\example\\example.cpp",
+  "file": "C:/Users/esunny/Documents/code/JConfigParser/example/example.cpp",
+  "output": "CMakeFiles/example.dir/example/example.cpp.obj"
+},
+{
+  "directory": "C:/Users/esunny/Documents/code/JConfigParser/build",
+  "command": "C:\\mingw64\\bin\\g++.exe -DRAPIDJSON_HAS_STDSTRING @CMakeFiles/test_jconfigparser.dir/includes_CXX.rsp -g -std=gnu++17 -o CMakeFiles\\test_jconfigparser.dir\\ut\\unittest.cpp.obj -c C:\\Users\\esunny\\Documents\\code\\JConfigParser\\ut\\unittest.cpp",
+  "file": "C:/Users/esunny/Documents/code/JConfigParser/ut/unittest.cpp",
+  "output": "CMakeFiles/test_jconfigparser.dir/ut/unittest.cpp.obj"
+}
+]
