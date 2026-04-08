@@ -31,7 +31,7 @@ else()
 endif()
 
 # 覆盖率选项
-if(FASTJSON_ENABLE_COVERAGE)
+if(JCONFIGPARSER_ENABLE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage -O0")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 endif()

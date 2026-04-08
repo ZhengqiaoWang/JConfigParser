@@ -1,5 +1,17 @@
+/**
+ * @file Node.h
+ * @brief JConfigParser JSON 库头文件
+ * @details 基于 RapidJSON 实现的 C++17 JSON 库，提供类型安全且易用的接口
+ * @author JConfigParser Team
+ * @date 2026
+ */
+
 #ifndef NODE_H
 #define NODE_H
+
+// 启动rapidjson支持
+#define RAPIDJSON_HAS_STDSTRING 1
+#define RAPIDJSON_HAS_CXX11 1
 
 #include <algorithm>
 #include <climits>
@@ -13,12 +25,23 @@
 #include <utility>
 #include <vector>
 
+/**
+ * @class Node
+ * @brief JSON 节点类，封装 RapidJSON 功能
+ * @details 提供类型安全、易用的 JSON 操作接口，支持对象、数组、字符串、数字、布尔值等类型
+ *
+ * 主要特性：
+ * - 使用 C++17 模板和完美转发，避免不必要的拷贝
+ * - 支持链式调用
+ * - 提供错误传播机制
+ * - 完整的类型检查和类型转换
+ */
 class Node
 {
 private:
-    std::shared_ptr<rapidjson::Document> doc_;
-    rapidjson::Value *node_;
-    std::string error_;
+    std::shared_ptr<rapidjson::Document> doc_; /// RapidJSON 文档（用于管理内存）
+    rapidjson::Value *node_;                   /// 指向当前节点
+    std::string error_;                        /// 错误信息（如果有）
 
     // 私有构造:从已有 Document 和节点创建
     Node(std::shared_ptr<rapidjson::Document> doc, rapidjson::Value *node)
@@ -36,49 +59,90 @@ private:
 
     // ==================== 内部辅助函数 ====================
 
-    // 创建单个值的Document（用于构造函数）- 使用完美转发
+    /**
+     * @brief 创建单个值的Document（用于构造函数）
+     * @tparam T 值类型
+     * @param node 目标节点
+     * @param value 要设置的值（使用完美转发）
+     */
     template <typename T>
     static void _createValueDocument(Node &node, T &&value)
     {
         node.doc_ = std::make_shared<rapidjson::Document>();
 
-        if constexpr (std::is_constructible_v<std::string, std::decay_t<T>> ||
-                      std::is_same_v<std::decay_t<T>, const char*>)
-        {
-            std::string str(std::forward<T>(value));
-            node.doc_->SetString(str.c_str(), node.doc_->GetAllocator());
-        }
-        else
-        {
-            // 其他类型（int, int64_t, double, bool等）直接使用Set
-            node.doc_->Set(std::forward<T>(value));
-        }
+        _setRapidjsonValue(node.doc_, node.doc_.get(), std::forward<T>(value));
 
         node.node_ = node.doc_.get();
     }
 
-    // 创建rapidjson::Value（用于set和append）- 使用完美转发
+    /**
+     * @brief 创建rapidjson::Value（用于set和append）
+     * @tparam T 值类型
+     * @param value 要设置的值（使用完美转发）
+     * @return rapidjson::Value 对象
+     */
     template <typename T>
-    rapidjson::Value _createValue(T &&value) const
+    static void _setRapidjsonValue(std::shared_ptr<rapidjson::Document> &doc_, rapidjson::Value *v, T &&value)
     {
-        rapidjson::Value v;
-
-        if constexpr (std::is_constructible_v<std::string, std::decay_t<T>> ||
-                      std::is_same_v<std::decay_t<T>, const char*>)
+        if constexpr (std::is_same_v<std::decay_t<T>, bool>)
+        {
+            v->SetBool(value);
+        }
+        else if constexpr (std::is_same_v<std::decay_t<T>, char> ||
+                           std::is_same_v<std::decay_t<T>, signed char> ||
+                           std::is_same_v<std::decay_t<T>, unsigned char>)
+        {
+            // char 类型转换为字符串（JSON没有char类型，字符串更可读）
+            std::string str(1, static_cast<char>(value));
+            v->SetString(str.c_str(), doc_->GetAllocator());
+        }
+        else if constexpr (std::is_constructible_v<std::string, std::decay_t<T>> ||
+                           std::is_same_v<T, const char *>)
         {
             std::string str(std::forward<T>(value));
-            v.SetString(str.c_str(), doc_->GetAllocator());
+            v->SetString(str.c_str(), doc_->GetAllocator());
         }
-        else
+        else if constexpr (std::is_floating_point_v<std::decay_t<T>>)
         {
-            // 其他类型（int, int64_t, double, bool等）直接使用Set
-            v.Set(std::forward<T>(value));
+            v->SetDouble(std::forward<std::decay_t<T>>(value));
         }
-
-        return v;
+        else if constexpr (std::is_integral_v<std::decay_t<T>>)
+        {
+            // 整数
+            if constexpr (sizeof(T) == 2 || sizeof(T) == 4)
+            {
+                // 16 bit / 32 bit
+                if constexpr (std::is_unsigned_v<std::decay_t<T>>)
+                {
+                    v->SetUint(std::forward<std::decay_t<T>>(value));
+                }
+                else
+                {
+                    v->SetInt(std::forward<std::decay_t<T>>(value));
+                }
+            }
+            else if constexpr (sizeof(T) == 8)
+            {
+                // 64 bit
+                if constexpr (std::is_unsigned_v<std::decay_t<T>>)
+                {
+                    v->SetUint64(std::forward<std::decay_t<T>>(value));
+                }
+                else
+                {
+                    v->SetInt64(std::forward<std::decay_t<T>>(value));
+                }
+            }
+        }
     }
 
-    // 通用的set方法实现 - 使用完美转发
+    /**
+     * @brief 通用的set方法实现
+     * @tparam T 值类型
+     * @param key 键名
+     * @param value 键值（使用完美转发）
+     * @return Node& 自身引用，支持链式调用
+     */
     template <typename T>
     Node &_setImpl(const std::string &key, T &&value)
     {
@@ -87,14 +151,23 @@ private:
             return *this;
         }
 
+        // 先移除已存在的键（如果存在）
+        node_->RemoveMember(key.c_str());
+
         rapidjson::Value k(key.c_str(), doc_->GetAllocator());
-        rapidjson::Value v = _createValue(std::forward<T>(value));
+        rapidjson::Value v;
+        _setRapidjsonValue(doc_, &v, std::forward<T>(value));
         node_->AddMember(k.Move(), v.Move(), doc_->GetAllocator());
 
         return *this;
     }
 
-    // 通用的append方法实现 - 使用完美转发
+    /**
+     * @brief 通用的append方法实现
+     * @tparam T 值类型
+     * @param value 要添加的值（使用完美转发）
+     * @return Node& 自身引用，支持链式调用
+     */
     template <typename T>
     Node &_appendImpl(T &&value)
     {
@@ -103,7 +176,8 @@ private:
             return *this;
         }
 
-        rapidjson::Value v = _createValue(std::forward<T>(value));
+        rapidjson::Value v;
+        _setRapidjsonValue(doc_, &v, std::forward<T>(value));
         node_->PushBack(v.Move(), doc_->GetAllocator());
 
         return *this;
@@ -112,10 +186,23 @@ private:
 public:
     // ==================== 构造 ====================
 
-    // 默认构造: null 节点
+    /**
+     * @brief 默认构造函数
+     * @details 创建一个无效的 null 节点
+     */
     Node() : doc_(nullptr), node_(nullptr) {}
 
-    // 创建空对象
+    /**
+     * @brief 创建空对象
+     * @return Node 对象节点
+     * @details 创建后可以使用 set() 方法添加键值对
+     *
+     * 示例：
+     * @code
+     * Node obj = Node::createObject();
+     * obj.set("name", "Alice").set("age", 30);
+     * @endcode
+     */
     static Node createObject()
     {
         Node obj;
@@ -125,7 +212,17 @@ public:
         return obj;
     }
 
-    // 创建空数组
+    /**
+     * @brief 创建空数组
+     * @return Node 数组节点
+     * @details 创建后可以使用 append() 方法添加元素
+     *
+     * 示例：
+     * @code
+     * Node arr = Node::createArray();
+     * arr.append(1).append(2).append(3);
+     * @endcode
+     */
     static Node createArray()
     {
         Node arr;
@@ -135,18 +232,36 @@ public:
         return arr;
     }
 
-    // 值构造 - 支持多种类型，使用完美转发
+    /**
+     * @brief 值构造函数 - 支持多种类型
+     * @tparam T 值类型，支持 std::string, int, int64_t, double, bool 等
+     * @param val 要包装的值
+     * @details 使用完美转发，支持左值和右值
+     *
+     * 示例：
+     * @code
+     * Node str("hello");           // 字符串
+     * Node num(42);                // 整数
+     * Node d(3.14);                // 浮点数
+     * Node b(true);                // 布尔值
+     * Node str2(std::string("test")); // std::string右值
+     * @endcode
+     */
     template <typename T, typename = std::enable_if_t<
-        !std::is_same_v<std::decay_t<T>, Node> &&
-        (std::is_constructible_v<std::string, std::decay_t<T>> ||
-         std::is_integral_v<std::decay_t<T>> ||
-         std::is_floating_point_v<std::decay_t<T>>)>>
+                              !std::is_same_v<std::decay_t<T>, Node> &&
+                              (std::is_constructible_v<std::string, std::decay_t<T>> ||
+                               std::is_integral_v<std::decay_t<T>> ||
+                               std::is_floating_point_v<std::decay_t<T>>)>>
     Node(T &&val)
     {
         _createValueDocument(*this, std::forward<T>(val));
     }
 
-    // Node类型的拷贝构造（避免与模板冲突）
+    /**
+     * @brief 拷贝构造函数
+     * @param other 要拷贝的节点
+     * @details 执行深拷贝，确保内存安全
+     */
     Node(const Node &other)
         : doc_(other.doc_), node_(other.node_), error_(other.error_)
     {
@@ -158,7 +273,11 @@ public:
         }
     }
 
-    // Node类型的移动构造
+    /**
+     * @brief 移动构造函数
+     * @param other 要移动的节点
+     * @details 接管 other 的资源，other 变为无效节点
+     */
     Node(Node &&other) noexcept
         : doc_(std::move(other.doc_)), node_(other.node_), error_(std::move(other.error_))
     {
@@ -167,6 +286,12 @@ public:
 
     // ==================== 拷贝与克隆 ====================
 
+    /**
+     * @brief 拷贝赋值运算符
+     * @param other 要拷贝的节点
+     * @return Node& 自身引用
+     * @details 执行深拷贝
+     */
     Node &operator=(const Node &other)
     {
         if (this != &other)
@@ -185,6 +310,12 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 移动赋值运算符
+     * @param other 要移动的节点
+     * @return Node& 自身引用
+     * @details 接管 other 的资源
+     */
     Node &operator=(Node &&other) noexcept
     {
         if (this != &other)
@@ -197,6 +328,11 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 克隆当前节点
+     * @return Node 克隆的节点
+     * @details 执行深拷贝，返回一个完全独立的副本
+     */
     Node clone() const
     {
         if (!doc_)
@@ -206,14 +342,17 @@ public:
 
         Node cloned;
         cloned.doc_ = std::make_shared<rapidjson::Document>();
-        cloned.doc_->CopyFrom(*doc_, cloned.doc_->GetAllocator());
 
         if (node_ == doc_.get())
         {
+            // 克隆根节点：复制整个文档
+            cloned.doc_->CopyFrom(*doc_, cloned.doc_->GetAllocator());
             cloned.node_ = cloned.doc_.get();
         }
         else
         {
+            // 克隆子节点：将子节点复制到新文档的根节点
+            cloned.doc_->CopyFrom(*node_, cloned.doc_->GetAllocator());
             cloned.node_ = cloned.doc_.get();
         }
 
@@ -222,21 +361,39 @@ public:
 
     // ==================== 状态判断 ====================
 
+    /**
+     * @brief 检查节点是否有效
+     * @return bool 节点有效返回 true，否则返回 false
+     * @details 无效节点是指未正确初始化或操作失败的节点
+     */
     bool isValid() const
     {
         return doc_ != nullptr && node_ != nullptr;
     }
 
+    /**
+     * @brief 检查节点是否为 null
+     * @return bool 节点为 null 返回 true，否则返回 false
+     */
     bool isNull() const
     {
         return node_ && node_->IsNull();
     }
 
+    /**
+     * @brief 检查节点是否有错误
+     * @return bool 有错误返回 true，否则返回 false
+     */
     bool isError() const
     {
         return !error_.empty();
     }
 
+    /**
+     * @brief 获取错误信息
+     * @return std::string 错误信息字符串
+     * @details 如果没有错误则返回空字符串
+     */
     std::string getError() const
     {
         return error_;
@@ -244,27 +401,113 @@ public:
 
     // ==================== 类型判断 ====================
 
+    /**
+     * @brief 检查节点类型（模板方法）
+     * @tparam T 要检查的类型
+     * @return bool 类型匹配返回 true，否则返回 false
+     *
+     * 支持的类型：
+     * - std::string / const char*
+     * - int64_t
+     * - double
+     * - bool
+     */
     template <typename T>
-    bool is() const;
+    bool is() const
+    {
+        if constexpr (std::is_same_v<std::decay_t<T>, std::string> || std::is_same_v<T, const char *> ||
+                      std::is_same_v<std::decay_t<T>, char> ||
+                      std::is_same_v<std::decay_t<T>, signed char> ||
+                      std::is_same_v<std::decay_t<T>, unsigned char>)
+        {
+            return node_ && node_->IsString();
+        }
+        else
+        {
+            return node_ && node_->Is<std::decay_t<T>>();
+        }
+    }
 
-    bool isString() const { return node_ && node_->IsString(); }
-    bool isInt64() const { return node_ && node_->IsInt64(); }
-    bool isDouble() const { return node_ && node_->IsDouble(); }
-    bool isBool() const { return node_ && node_->IsBool(); }
+    /**
+     * @brief 检查是否为对象
+     * @return bool 是对象返回 true，否则返回 false
+     */
     bool isObject() const { return node_ && node_->IsObject(); }
+
+    /**
+     * @brief 检查是否为数组
+     * @return bool 是数组返回 true，否则返回 false
+     */
     bool isArray() const { return node_ && node_->IsArray(); }
+
+    /**
+     * @brief 检查是否为数字
+     * @return bool 是数字（整数或浮点数）返回 true，否则返回 false
+     */
     bool isNumber() const { return node_ && node_->IsNumber(); }
 
     // ==================== 取值 ====================
 
+    /**
+     * @brief 获取节点值（模板方法）
+     * @tparam T 目标类型
+     * @return T 节点的值
+     * @details 如果类型不匹配或节点无效，返回该类型的默认值
+     *
+     * @warning 类型不匹配时不会抛出异常，而是返回默认值
+     * 建议配合 getValueOr() 或 is() 使用以确保类型安全
+     */
     template <typename T>
-    T getValue() const;
+    std::decay_t<T> getValue() const
+    {
+        if (!isValid() || !is<T>())
+        {
+            return 0;
+        }
+        return node_->Get<std::decay_t<T>>();
+    }
 
+    /**
+     * @brief 获取节点值，带默认值
+     * @tparam T 目标类型
+     * @param defaultVal 默认值
+     * @return T 节点的值，若无效则返回默认值
+     *
+     * 示例：
+     * @code
+     * Node obj = Node::createObject();
+     * obj.set("name", "Alice");
+     * std::string name = obj.get("name").getValueOr("Unknown");
+     * @endcode
+     */
     template <typename T>
-    T getValueOr(const T &defaultVal) const;
+    std::decay_t<T> getValueOr(T &&defaultVal) const
+    {
+        if (!isValid() || !node_->Is<T>())
+        {
+            return defaultVal;
+        }
+        return node_->Get<std::decay_t<T>>();
+    }
 
     // ==================== 获取子节点 ====================
 
+    /**
+     * @brief 获取对象的子节点
+     * @param key 键名
+     * @return Node 子节点
+     * @details 如果键不存在或节点无效，返回错误节点
+     *
+     * 示例：
+     * @code
+     * Node obj = Node::createObject();
+     * obj.set("name", "Alice");
+     * Node nameNode = obj.get("name");
+     * if (nameNode.isValid()) {
+     *     std::cout << nameNode.getValue<std::string>() << std::endl;
+     * }
+     * @endcode
+     */
     Node get(const std::string &key) const
     {
         if (!isValid())
@@ -286,6 +529,12 @@ public:
         return Node(doc_, &it->value);
     }
 
+    /**
+     * @brief 获取数组的元素
+     * @param index 索引
+     * @return Node 数组元素
+     * @details 如果索引越界或节点无效，返回错误节点
+     */
     Node at(size_t index) const
     {
         if (!isValid())
@@ -306,6 +555,11 @@ public:
         return Node(doc_, &(*node_)[index]);
     }
 
+    /**
+     * @brief 检查对象是否包含指定键
+     * @param key 键名
+     * @return bool 包含返回 true，否则返回 false
+     */
     bool has(const std::string &key) const
     {
         if (!isValid() || !node_->IsObject())
@@ -315,6 +569,12 @@ public:
         return node_->HasMember(key.c_str());
     }
 
+    /**
+     * @brief 删除对象的键
+     * @param key 键名
+     * @return Node& 自身引用，支持链式调用
+     * @details 如果键不存在，不执行任何操作
+     */
     Node &remove(const std::string &key)
     {
         if (!isValid())
@@ -331,6 +591,11 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 获取对象或数组的大小
+     * @return size_t 大小
+     * @details 对象返回键值对数量，数组返回元素数量
+     */
     size_t size() const
     {
         if (!isValid())
@@ -349,6 +614,11 @@ public:
         return 0;
     }
 
+    /**
+     * @brief 获取对象的所有键名
+     * @return std::vector<std::string> 键名列表
+     * @details 如果节点不是对象，返回空列表
+     */
     std::vector<std::string> keys() const
     {
         if (!isValid() || !node_->IsObject())
@@ -366,24 +636,49 @@ public:
 
     // ==================== 设置值 ====================
 
-    // 模板set方法 - 支持各种类型，使用完美转发
+    /**
+     * @brief 设置对象的键值对（模板方法）
+     * @tparam T 值类型，支持 std::string, int, int64_t, double, bool 等
+     * @param key 键名
+     * @param value 值（使用完美转发）
+     * @return Node& 自身引用，支持链式调用
+     * @details 如果键已存在，覆盖旧值；如果节点无效或非对象节点，不执行任何操作
+     *
+     * 示例：
+     * @code
+     * Node obj = Node::createObject();
+     * obj.set("name", "Alice")     // 字符串
+     *    .set("age", 30)           // 整数
+     *    .set("height", 1.75)      // 浮点数
+     *    .set("active", true);     // 布尔值
+     * @endcode
+     */
     template <typename T, typename = std::enable_if_t<
-        !std::is_same_v<std::decay_t<T>, Node> &&
-        (std::is_constructible_v<std::string, std::decay_t<T>> ||
-         std::is_integral_v<std::decay_t<T>> ||
-         std::is_floating_point_v<std::decay_t<T>>)>>
+                              !std::is_same_v<std::decay_t<T>, Node> &&
+                              (std::is_constructible_v<std::string, std::decay_t<T>> ||
+                               std::is_integral_v<std::decay_t<T>> ||
+                               std::is_floating_point_v<std::decay_t<T>>)>>
     Node &set(const std::string &key, T &&value)
     {
         return _setImpl(key, std::forward<T>(value));
     }
 
-    // Node类型特殊处理 - 使用完美转发
+    /**
+     * @brief 设置对象的键值对 - Node 类型
+     * @param key 键名
+     * @param value 值节点
+     * @return Node& 自身引用，支持链式调用
+     * @details 将整个 Node 对象作为值嵌入
+     */
     Node &set(const std::string &key, const Node &value)
     {
         if (!isValid() || !node_->IsObject() || !value.isValid())
         {
             return *this;
         }
+
+        // 先移除已存在的键（如果存在）
+        node_->RemoveMember(key.c_str());
 
         rapidjson::Value k(key.c_str(), doc_->GetAllocator());
         rapidjson::Value v;
@@ -393,7 +688,19 @@ public:
         return *this;
     }
 
-    // 直接创建子对象/子数组
+    /**
+     * @brief 设置子对象
+     * @param key 键名
+     * @return Node 新创建的子对象
+     * @details 如果键已存在且值为对象，重置为空对象；否则创建新的空对象
+     *
+     * 示例：
+     * @code
+     * Node config = Node::createObject();
+     * Node nested = config.setObject("nested");
+     * nested.set("key", "value");
+     * @endcode
+     */
     Node setObject(const std::string &key)
     {
         if (!isValid() || !node_->IsObject())
@@ -417,6 +724,19 @@ public:
         return Node(doc_, &newIt->value);
     }
 
+    /**
+     * @brief 设置子数组
+     * @param key 键名
+     * @return Node 新创建的子数组
+     * @details 如果键已存在且值为数组，重置为空数组；否则创建新的空数组
+     *
+     * 示例：
+     * @code
+     * Node config = Node::createObject();
+     * Node list = config.setArray("list");
+     * list.append(1).append(2).append(3);
+     * @endcode
+     */
     Node setArray(const std::string &key)
     {
         if (!isValid() || !node_->IsObject())
@@ -442,18 +762,36 @@ public:
 
     // ==================== 数组追加 ====================
 
-    // 模板append方法 - 支持各种类型，使用完美转发
+    /**
+     * @brief 向数组追加元素（模板方法）
+     * @tparam T 元素类型，支持 std::string, int, int64_t, double, bool 等
+     * @param value 元素值（使用完美转发）
+     * @return Node& 自身引用，支持链式调用
+     *
+     * 示例：
+     * @code
+     * Node arr = Node::createArray();
+     * arr.append("hello")           // 字符串
+     *    .append(42)                // 整数
+     *    .append(3.14)              // 浮点数
+     *    .append(true);             // 布尔值
+     * @endcode
+     */
     template <typename T, typename = std::enable_if_t<
-        !std::is_same_v<std::decay_t<T>, Node> &&
-        (std::is_constructible_v<std::string, std::decay_t<T>> ||
-         std::is_integral_v<std::decay_t<T>> ||
-         std::is_floating_point_v<std::decay_t<T>>)>>
+                              !std::is_same_v<std::decay_t<T>, Node> &&
+                              (std::is_constructible_v<std::string, std::decay_t<T>> ||
+                               std::is_integral_v<std::decay_t<T>> ||
+                               std::is_floating_point_v<std::decay_t<T>>)>>
     Node &append(T &&value)
     {
         return _appendImpl(std::forward<T>(value));
     }
 
-    // Node类型特殊处理
+    /**
+     * @brief 向数组追加 Node 元素
+     * @param value 节点元素
+     * @return Node& 自身引用，支持链式调用
+     */
     Node &append(const Node &value)
     {
         if (!isValid() || !node_->IsArray() || !value.isValid())
@@ -468,6 +806,17 @@ public:
         return *this;
     }
 
+    /**
+     * @brief 追加一个空对象到数组
+     * @return Node 新创建的对象
+     *
+     * 示例：
+     * @code
+     * Node arr = Node::createArray();
+     * Node obj = arr.appendObject();
+     * obj.set("name", "Alice");
+     * @endcode
+     */
     Node appendObject()
     {
         if (!isValid() || !node_->IsArray())
@@ -482,6 +831,17 @@ public:
         return Node(doc_, &(*node_)[node_->Size() - 1]);
     }
 
+    /**
+     * @brief 追加一个空数组到数组
+     * @return Node 新创建的数组
+     *
+     * 示例：
+     * @code
+     * Node arr = Node::createArray();
+     * Node subArr = arr.appendArray();
+     * subArr.append(1).append(2);
+     * @endcode
+     */
     Node appendArray()
     {
         if (!isValid() || !node_->IsArray())
@@ -498,6 +858,20 @@ public:
 
     // ==================== 序列化 ====================
 
+    /**
+     * @brief 将节点序列化为 JSON 字符串
+     * @param pretty 是否美化输出（默认 false）
+     * @return std::string JSON 字符串
+     * @details 无效节点返回 "null"
+     *
+     * 示例：
+     * @code
+     * Node obj = Node::createObject();
+     * obj.set("name", "Alice");
+     * std::string compact = obj.toJson();       // 紧凑格式
+     * std::string formatted = obj.toJson(true); // 美化格式
+     * @endcode
+     */
     std::string toJson(bool pretty = false) const
     {
         if (!isValid())
@@ -521,6 +895,23 @@ public:
         return std::string(buffer.GetString(), buffer.GetSize());
     }
 
+    /**
+     * @brief 从 JSON 字符串解析节点
+     * @param json JSON 字符串
+     * @return Node 解析后的节点
+     * @details 如果解析失败，返回错误节点，error_ 包含错误信息
+     *
+     * 示例：
+     * @code
+     * std::string json = R"({"name": "Alice", "age": 30})";
+     * Node obj = Node::fromJson(json);
+     * if (obj.isValid()) {
+     *     std::cout << obj.get("name").getValue<std::string>() << std::endl;
+     * } else {
+     *     std::cerr << "Parse error: " << obj.getError() << std::endl;
+     * }
+     * @endcode
+     */
     static Node fromJson(const std::string &json)
     {
         Node result;
@@ -543,38 +934,37 @@ public:
 
 // ==================== 模板特化实现 ====================
 
-// is<T>() 特化
-template <>
-inline bool Node::is<std::string>() const
-{
-    return node_ && node_->IsString();
-}
-
-template <>
-inline bool Node::is<const char*>() const
-{
-    return node_ && node_->IsString();
-}
-
-template <>
-inline bool Node::is<int64_t>() const
-{
-    return node_ && node_->IsInt64();
-}
-
-template <>
-inline bool Node::is<double>() const
-{
-    return node_ && node_->IsDouble();
-}
-
-template <>
-inline bool Node::is<bool>() const
-{
-    return node_ && node_->IsBool();
-}
-
 // getValue<T>() 特化
+template <>
+inline char Node::getValue<char>() const
+{
+    if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
+    {
+        return '\0';
+    }
+    return node_->GetString()[0];
+}
+
+template <>
+inline signed char Node::getValue<signed char>() const
+{
+    if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
+    {
+        return '\0';
+    }
+    return static_cast<signed char>(node_->GetString()[0]);
+}
+
+template <>
+inline unsigned char Node::getValue<unsigned char>() const
+{
+    if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
+    {
+        return '\0';
+    }
+    return static_cast<unsigned char>(node_->GetString()[0]);
+}
+
 template <>
 inline std::string Node::getValue<std::string>() const
 {
@@ -586,7 +976,7 @@ inline std::string Node::getValue<std::string>() const
 }
 
 template <>
-inline const char* Node::getValue<const char*>() const
+inline const char *Node::getValue<const char *>() const
 {
     if (!isValid() || !node_->IsString())
     {
@@ -595,75 +985,45 @@ inline const char* Node::getValue<const char*>() const
     return node_->GetString();
 }
 
-template <>
-inline int64_t Node::getValue<int64_t>() const
-{
-    if (!isValid() || !node_->IsInt64())
-    {
-        return 0;
-    }
-    return node_->GetInt64();
-}
-
-template <>
-inline double Node::getValue<double>() const
-{
-    if (!isValid() || !node_->IsDouble())
-    {
-        return 0.0;
-    }
-    return node_->GetDouble();
-}
-
-template <>
-inline bool Node::getValue<bool>() const
-{
-    if (!isValid() || !node_->IsBool())
-    {
-        return false;
-    }
-    return node_->GetBool();
-}
-
 // getValueOr<T>() 特化
 template <>
-inline std::string Node::getValueOr<std::string>(const std::string &defaultVal) const
+inline char Node::getValueOr<char>(char &&defaultVal) const
+{
+    if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
+    {
+        return defaultVal;
+    }
+    return node_->GetString()[0];
+}
+
+template <>
+inline signed char Node::getValueOr<signed char>(signed char &&defaultVal) const
+{
+    if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
+    {
+        return defaultVal;
+    }
+    return static_cast<signed char>(node_->GetString()[0]);
+}
+
+template <>
+inline unsigned char Node::getValueOr<unsigned char>(unsigned char &&defaultVal) const
+{
+    if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
+    {
+        return defaultVal;
+    }
+    return static_cast<unsigned char>(node_->GetString()[0]);
+}
+
+template <>
+inline std::string Node::getValueOr<std::string>(std::string &&defaultVal) const
 {
     if (!isValid() || !node_->IsString())
     {
         return defaultVal;
     }
     return std::string(node_->GetString(), node_->GetStringLength());
-}
-
-template <>
-inline int64_t Node::getValueOr<int64_t>(const int64_t &defaultVal) const
-{
-    if (!isValid() || !node_->IsInt64())
-    {
-        return defaultVal;
-    }
-    return node_->GetInt64();
-}
-
-template <>
-inline double Node::getValueOr<double>(const double &defaultVal) const
-{
-    if (!isValid() || !node_->IsDouble())
-    {
-        return defaultVal;
-    }
-    return node_->GetDouble();
-}
-
-template <>
-inline bool Node::getValueOr<bool>(const bool &defaultVal) const
-{
-    if (!isValid() || !node_->IsBool())
-    {
-        return defaultVal;
-    }
-    return node_->GetBool();
 }
 
 #endif // NODE_H
