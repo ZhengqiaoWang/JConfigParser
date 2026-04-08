@@ -94,17 +94,17 @@ if(JCONFIGPARSER_BUILD_TESTS)
     endif()
 endif()
 
-# # ==================== 性能测试 ====================
-# if(FASTJSON_BUILD_BENCHMARKS)
-#     # 数据生成器
-#     add_executable(gen_data benchmark/gen_data.cpp)
-#     target_link_libraries(gen_data PRIVATE JConfigParser)
-
-#     # 各库独立 benchmark
-#     add_executable(bench_fastjson benchmark/bench_fastjson.cpp)
-#     target_link_libraries(bench_fastjson PRIVATE JConfigParser)
-
-#     add_executable(bench_rapidjson benchmark/bench_rapidjson.cpp)
-
-#     add_executable(bench_nlohmann benchmark/bench_nlohmann.cpp)
-# endif()
+# ==================== 性能和合规测试 ====================
+if(JCONFIGPARSER_BUILD_BENCHMARKS)
+    add_executable(benchmark_jconfigparser benchmark/benchmark.cpp)
+    if(WIN32)
+        set_target_properties(benchmark_jconfigparser PROPERTIES WIN32_EXECUTABLE FALSE)
+    endif()
+    target_include_directories(benchmark_jconfigparser PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/rapidjson/include
+    )
+    target_include_directories(benchmark_jconfigparser PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/JConfigParser
+    )
+    target_link_libraries(benchmark_jconfigparser PRIVATE JConfigParser)
+endif()
