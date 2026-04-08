@@ -454,6 +454,11 @@ public:
         return append(std::string(value));
     }
 
+    Node &append(int value)
+    {
+        return append(static_cast<int64_t>(value));
+    }
+
     Node &append(int64_t value)
     {
         if (!isValid() || !node_->IsArray())
@@ -681,16 +686,6 @@ inline std::string Node::getValueOr<std::string>(const std::string &defaultVal) 
         return defaultVal;
     }
     return std::string(node_->GetString(), node_->GetStringLength());
-}
-
-template <>
-inline const char* Node::getValueOr<const char*>(const char* defaultVal) const
-{
-    if (!isValid() || !node_->IsString())
-    {
-        return defaultVal;
-    }
-    return node_->GetString();
 }
 
 template <>

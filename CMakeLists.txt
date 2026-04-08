@@ -39,6 +39,9 @@ endif()
 # ==================== 示例程序 ====================
 if(JCONFIGPARSER_BUILD_EXAMPLES)
     add_executable(example example/example.cpp)
+    if(WIN32)
+        set_target_properties(example PROPERTIES WIN32_EXECUTABLE FALSE)
+    endif()
     target_link_libraries(example PRIVATE JConfigParser)
     target_include_directories(example PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/rapidjson/include
@@ -53,13 +56,16 @@ if(JCONFIGPARSER_BUILD_TESTS)
     enable_testing()
 
     add_executable(test_jconfigparser ut/unittest.cpp)
+    if(WIN32)
+        set_target_properties(test_jconfigparser PROPERTIES WIN32_EXECUTABLE FALSE)
+    endif()
     target_include_directories(test_jconfigparser PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/doctest
     )
     target_include_directories(test_jconfigparser PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/rapidjson/include
     )
-    target_include_directories(example PRIVATE
+    target_include_directories(test_jconfigparser PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/JConfigParser
     )
     target_link_libraries(test_jconfigparser PRIVATE JConfigParser)
