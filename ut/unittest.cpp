@@ -1,6 +1,13 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include "JConfigParser/Node.h"
+
+DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4822)
 
 TEST_CASE("Node 构造函数测试") {
     // 默认构造函数（无效节点）
@@ -359,4 +366,14 @@ TEST_CASE("Node 边界情况测试") {
     CHECK(negative.isValid());
     CHECK(negative.isInt64());
     CHECK(negative.getValue<int64_t>() == -42);
+}
+
+DOCTEST_MSVC_SUPPRESS_WARNING_POP
+
+int main(int argc, char** argv)
+{
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+    return doctest::Context(argc, argv).run();
 }

@@ -1,7 +1,15 @@
 #include <iostream>
 #include "Node.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 int main() {
+#ifdef _WIN32
+    // 设置控制台为UTF-8编码以正确显示中文
+    SetConsoleOutputCP(CP_UTF8);
+#endif
     // ========== 示例1: 检查节点有效性 ==========
     std::cout << "=== 示例1: 检查节点有效性 ===" << std::endl;
     

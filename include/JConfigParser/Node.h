@@ -10,6 +10,7 @@
 #include <rapidjson/writer.h>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 class Node
@@ -31,6 +32,81 @@ private:
         node.doc_ = nullptr;
         node.node_ = nullptr;
         return node;
+    }
+
+    // ==================== 内部辅助函数 ====================
+
+    // 创建单个值的Document（用于构造函数）- 使用完美转发
+    template <typename T>
+    static void _createValueDocument(Node &node, T &&value)
+    {
+        node.doc_ = std::make_shared<rapidjson::Document>();
+
+        if constexpr (std::is_constructible_v<std::string, std::decay_t<T>> ||
+                      std::is_same_v<std::decay_t<T>, const char*>)
+        {
+            std::string str(std::forward<T>(value));
+            node.doc_->SetString(str.c_str(), node.doc_->GetAllocator());
+        }
+        else
+        {
+            // 其他类型（int, int64_t, double, bool等）直接使用Set
+            node.doc_->Set(std::forward<T>(value));
+        }
+
+        node.node_ = node.doc_.get();
+    }
+
+    // 创建rapidjson::Value（用于set和append）- 使用完美转发
+    template <typename T>
+    rapidjson::Value _createValue(T &&value) const
+    {
+        rapidjson::Value v;
+
+        if constexpr (std::is_constructible_v<std::string, std::decay_t<T>> ||
+                      std::is_same_v<std::decay_t<T>, const char*>)
+        {
+            std::string str(std::forward<T>(value));
+            v.SetString(str.c_str(), doc_->GetAllocator());
+        }
+        else
+        {
+            // 其他类型（int, int64_t, double, bool等）直接使用Set
+            v.Set(std::forward<T>(value));
+        }
+
+        return v;
+    }
+
+    // 通用的set方法实现 - 使用完美转发
+    template <typename T>
+    Node &_setImpl(const std::string &key, T &&value)
+    {
+        if (!isValid() || !node_->IsObject())
+        {
+            return *this;
+        }
+
+        rapidjson::Value k(key.c_str(), doc_->GetAllocator());
+        rapidjson::Value v = _createValue(std::forward<T>(value));
+        node_->AddMember(k.Move(), v.Move(), doc_->GetAllocator());
+
+        return *this;
+    }
+
+    // 通用的append方法实现 - 使用完美转发
+    template <typename T>
+    Node &_appendImpl(T &&value)
+    {
+        if (!isValid() || !node_->IsArray())
+        {
+            return *this;
+        }
+
+        rapidjson::Value v = _createValue(std::forward<T>(value));
+        node_->PushBack(v.Move(), doc_->GetAllocator());
+
+        return *this;
     }
 
 public:
@@ -59,52 +135,21 @@ public:
         return arr;
     }
 
-    // 字符串构造
-    Node(const std::string &val)
+    // 值构造 - 支持多种类型，使用完美转发
+    template <typename T, typename = std::enable_if_t<
+        !std::is_same_v<std::decay_t<T>, Node> &&
+        (std::is_constructible_v<std::string, std::decay_t<T>> ||
+         std::is_integral_v<std::decay_t<T>> ||
+         std::is_floating_point_v<std::decay_t<T>>)>>
+    Node(T &&val)
     {
-        doc_ = std::make_shared<rapidjson::Document>();
-        doc_->SetString(val.c_str(), doc_->GetAllocator());
-        node_ = doc_.get();
+        _createValueDocument(*this, std::forward<T>(val));
     }
 
-    // const char* 构造
-    Node(const char *val)
-    {
-        doc_ = std::make_shared<rapidjson::Document>();
-        doc_->SetString(val, doc_->GetAllocator());
-        node_ = doc_.get();
-    }
-
-    // int64_t 构造
-    Node(int64_t val)
-    {
-        doc_ = std::make_shared<rapidjson::Document>();
-        doc_->SetInt64(val);
-        node_ = doc_.get();
-    }
-
-    // double 构造
-    Node(double val)
-    {
-        doc_ = std::make_shared<rapidjson::Document>();
-        doc_->SetDouble(val);
-        node_ = doc_.get();
-    }
-
-    // bool 构造
-    Node(bool val)
-    {
-        doc_ = std::make_shared<rapidjson::Document>();
-        doc_->SetBool(val);
-        node_ = doc_.get();
-    }
-
-    // ==================== 拷贝与克隆 ====================
-
+    // Node类型的拷贝构造（避免与模板冲突）
     Node(const Node &other)
         : doc_(other.doc_), node_(other.node_), error_(other.error_)
     {
-        // 如果是根节点，深拷贝整个 Document
         if (other.doc_ && other.node_ == other.doc_.get())
         {
             doc_ = std::make_shared<rapidjson::Document>();
@@ -112,6 +157,15 @@ public:
             node_ = doc_.get();
         }
     }
+
+    // Node类型的移动构造
+    Node(Node &&other) noexcept
+        : doc_(std::move(other.doc_)), node_(other.node_), error_(std::move(other.error_))
+    {
+        other.node_ = nullptr;
+    }
+
+    // ==================== 拷贝与克隆 ====================
 
     Node &operator=(const Node &other)
     {
@@ -121,13 +175,24 @@ public:
             node_ = other.node_;
             error_ = other.error_;
 
-            // 如果是根节点，深拷贝
             if (other.doc_ && other.node_ == other.doc_.get())
             {
                 doc_ = std::make_shared<rapidjson::Document>();
                 doc_->CopyFrom(*other.doc_, doc_->GetAllocator());
                 node_ = doc_.get();
             }
+        }
+        return *this;
+    }
+
+    Node &operator=(Node &&other) noexcept
+    {
+        if (this != &other)
+        {
+            doc_ = std::move(other.doc_);
+            node_ = other.node_;
+            error_ = std::move(other.error_);
+            other.node_ = nullptr;
         }
         return *this;
     }
@@ -149,8 +214,6 @@ public:
         }
         else
         {
-            // 对于非根节点，需要重新定位到正确的位置
-            // 这里简化处理，只支持根节点的克隆
             cloned.node_ = cloned.doc_.get();
         }
 
@@ -303,78 +366,21 @@ public:
 
     // ==================== 设置值 ====================
 
-    Node &set(const std::string &key, const std::string &value)
+    // 模板set方法 - 支持各种类型，使用完美转发
+    template <typename T, typename = std::enable_if_t<
+        !std::is_same_v<std::decay_t<T>, Node> &&
+        (std::is_constructible_v<std::string, std::decay_t<T>> ||
+         std::is_integral_v<std::decay_t<T>> ||
+         std::is_floating_point_v<std::decay_t<T>>)>>
+    Node &set(const std::string &key, T &&value)
     {
-        if (!isValid() || !node_->IsObject())
-        {
-            return *this;
-        }
-
-        rapidjson::Value k(key.c_str(), doc_->GetAllocator());
-        rapidjson::Value v(value.c_str(), doc_->GetAllocator());
-        node_->AddMember(k.Move(), v.Move(), doc_->GetAllocator());
-
-        return *this;
+        return _setImpl(key, std::forward<T>(value));
     }
 
-    Node &set(const std::string &key, const char *value)
-    {
-        return set(key, std::string(value));
-    }
-
-    Node &set(const std::string &key, int64_t value)
-    {
-        if (!isValid() || !node_->IsObject())
-        {
-            return *this;
-        }
-
-        rapidjson::Value k(key.c_str(), doc_->GetAllocator());
-        rapidjson::Value v;
-        v.SetInt64(value);
-        node_->AddMember(k.Move(), v.Move(), doc_->GetAllocator());
-
-        return *this;
-    }
-
-    Node &set(const std::string &key, double value)
-    {
-        if (!isValid() || !node_->IsObject())
-        {
-            return *this;
-        }
-
-        rapidjson::Value k(key.c_str(), doc_->GetAllocator());
-        rapidjson::Value v;
-        v.SetDouble(value);
-        node_->AddMember(k.Move(), v.Move(), doc_->GetAllocator());
-
-        return *this;
-    }
-
-    Node &set(const std::string &key, bool value)
-    {
-        if (!isValid() || !node_->IsObject())
-        {
-            return *this;
-        }
-
-        rapidjson::Value k(key.c_str(), doc_->GetAllocator());
-        rapidjson::Value v;
-        v.SetBool(value);
-        node_->AddMember(k.Move(), v.Move(), doc_->GetAllocator());
-
-        return *this;
-    }
-
+    // Node类型特殊处理 - 使用完美转发
     Node &set(const std::string &key, const Node &value)
     {
-        if (!isValid() || !node_->IsObject())
-        {
-            return *this;
-        }
-
-        if (!value.isValid())
+        if (!isValid() || !node_->IsObject() || !value.isValid())
         {
             return *this;
         }
@@ -415,7 +421,7 @@ public:
     {
         if (!isValid() || !node_->IsObject())
         {
-            return createError("Cannot set array on invalid or non-object node");
+            return createError("Cannot set array on invalid or non-array node");
         }
 
         auto it = node_->FindMember(key.c_str());
@@ -436,79 +442,21 @@ public:
 
     // ==================== 数组追加 ====================
 
-    Node &append(const std::string &value)
+    // 模板append方法 - 支持各种类型，使用完美转发
+    template <typename T, typename = std::enable_if_t<
+        !std::is_same_v<std::decay_t<T>, Node> &&
+        (std::is_constructible_v<std::string, std::decay_t<T>> ||
+         std::is_integral_v<std::decay_t<T>> ||
+         std::is_floating_point_v<std::decay_t<T>>)>>
+    Node &append(T &&value)
     {
-        if (!isValid() || !node_->IsArray())
-        {
-            return *this;
-        }
-
-        rapidjson::Value v(value.c_str(), doc_->GetAllocator());
-        node_->PushBack(v.Move(), doc_->GetAllocator());
-
-        return *this;
+        return _appendImpl(std::forward<T>(value));
     }
 
-    Node &append(const char *value)
-    {
-        return append(std::string(value));
-    }
-
-    Node &append(int value)
-    {
-        return append(static_cast<int64_t>(value));
-    }
-
-    Node &append(int64_t value)
-    {
-        if (!isValid() || !node_->IsArray())
-        {
-            return *this;
-        }
-
-        rapidjson::Value v;
-        v.SetInt64(value);
-        node_->PushBack(v.Move(), doc_->GetAllocator());
-
-        return *this;
-    }
-
-    Node &append(double value)
-    {
-        if (!isValid() || !node_->IsArray())
-        {
-            return *this;
-        }
-
-        rapidjson::Value v;
-        v.SetDouble(value);
-        node_->PushBack(v.Move(), doc_->GetAllocator());
-
-        return *this;
-    }
-
-    Node &append(bool value)
-    {
-        if (!isValid() || !node_->IsArray())
-        {
-            return *this;
-        }
-
-        rapidjson::Value v;
-        v.SetBool(value);
-        node_->PushBack(v.Move(), doc_->GetAllocator());
-
-        return *this;
-    }
-
+    // Node类型特殊处理
     Node &append(const Node &value)
     {
-        if (!isValid() || !node_->IsArray())
-        {
-            return *this;
-        }
-
-        if (!value.isValid())
+        if (!isValid() || !node_->IsArray() || !value.isValid())
         {
             return *this;
         }
