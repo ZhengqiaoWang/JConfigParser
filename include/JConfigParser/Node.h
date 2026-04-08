@@ -151,9 +151,16 @@ private:
             return *this;
         }
 
-        // 先移除已存在的键（如果存在）
-        node_->RemoveMember(key.c_str());
+        // 检查键是否已存在，如果存在则覆盖
+        auto it = node_->FindMember(key.c_str());
+        if (it != node_->MemberEnd())
+        {
+            // 键已存在，直接修改值（避免RemoveMember+AddMember的开销）
+            _setRapidjsonValue(doc_, &it->value, std::forward<T>(value));
+            return *this;
+        }
 
+        // 键不存在，添加新的键值对
         rapidjson::Value k(key.c_str(), doc_->GetAllocator());
         rapidjson::Value v;
         _setRapidjsonValue(doc_, &v, std::forward<T>(value));
