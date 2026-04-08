@@ -18,7 +18,6 @@ DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4822)
 TEST_CASE("Node 默认构造测试") {
     Node invalid;
     CHECK(!invalid.isValid());
-    CHECK(!invalid.isError());
     CHECK(invalid.isNull() == false);
 }
 
@@ -26,7 +25,6 @@ TEST_CASE("Node createObject 测试") {
     Node obj = Node::createObject();
     CHECK(obj.isValid());
     CHECK(obj.isObject());
-    CHECK(!obj.isError());
     CHECK(obj.size() == 0);
 }
 
@@ -34,7 +32,6 @@ TEST_CASE("Node createArray 测试") {
     Node arr = Node::createArray();
     CHECK(arr.isValid());
     CHECK(arr.isArray());
-    CHECK(!arr.isError());
     CHECK(arr.size() == 0);
 }
 
@@ -69,6 +66,7 @@ TEST_CASE("Node 整数构造测试") {
     // int64_t 构造
     Node intNode2(int64_t(123456789));
     CHECK(intNode2.isValid());
+    CHECK(intNode2.is<int32_t>());
     CHECK(intNode2.is<int64_t>());
     CHECK(intNode2.getValue<int64_t>() == 123456789);
 
@@ -232,19 +230,19 @@ TEST_CASE("Node isNull 测试") {
 }
 
 TEST_CASE("Node isError 测试") {
-    CHECK(!Node::createObject().isError());
-    CHECK(!Node().isError());
+    CHECK(Node::createObject().isValid());
+    CHECK(!Node().isValid());
 
     // get 返回的错误节点
     Node obj = Node::createObject();
     CHECK(!obj.get("key").isValid());
-    CHECK(obj.get("key").isError());
+    CHECK(obj.get("key").isValid() == false);
     CHECK(!obj.get("key").getError().empty());
 
     // at 越界返回的错误节点
     Node arr = Node::createArray();
     CHECK(!arr.at(0).isValid());
-    CHECK(arr.at(0).isError());
+    CHECK(arr.at(0).isValid() == false);
 }
 
 TEST_CASE("Node getError 测试") {
@@ -392,20 +390,20 @@ TEST_CASE("Node get 测试") {
     // 获取不存在的键
     Node missing = obj.get("missing");
     CHECK(!missing.isValid());
-    CHECK(missing.isError());
+    CHECK(missing.isValid() == false);
     CHECK(!missing.getError().empty());
 
     // 从无效节点获取
     Node invalid;
     Node error = invalid.get("key");
     CHECK(!error.isValid());
-    CHECK(error.isError());
+    CHECK(error.isValid() == false);
 
     // 从非对象节点获取
     Node arr = Node::createArray();
     Node arrError = arr.get("key");
     CHECK(!arrError.isValid());
-    CHECK(arrError.isError());
+    CHECK(arrError.isValid() == false);
 }
 
 TEST_CASE("Node at 测试") {
@@ -421,19 +419,19 @@ TEST_CASE("Node at 测试") {
 
     // 越界访问
     CHECK(!arr.at(3).isValid());
-    CHECK(arr.at(3).isError());
+    CHECK(arr.at(3).isValid() == false);
     CHECK(!arr.at(10).isValid());
-    CHECK(arr.at(10).isError());
+    CHECK(arr.at(10).isValid() == false);
 
     // 从无效节点访问
     Node invalid;
     CHECK(!invalid.at(0).isValid());
-    CHECK(invalid.at(0).isError());
+    CHECK(invalid.at(0).isValid() == false);
 
     // 从非数组节点访问
     Node obj = Node::createObject();
     CHECK(!obj.at(0).isValid());
-    CHECK(obj.at(0).isError());
+    CHECK(obj.at(0).isValid() == false);
 }
 
 TEST_CASE("Node has 测试") {
@@ -629,11 +627,11 @@ TEST_CASE("Node set/setObject/setArray - 错误处理") {
     Node arr = Node::createArray();
     auto err1 = arr.setObject("key");
     CHECK(!err1.isValid());
-    CHECK(err1.isError());
+    CHECK(err1.isValid() == false);
 
     auto err2 = arr.setArray("key");
     CHECK(!err2.isValid());
-    CHECK(err2.isError());
+    CHECK(err2.isValid() == false);
 }
 
 TEST_CASE("Node set 链式调用测试") {
@@ -747,7 +745,7 @@ TEST_CASE("Node append/appendObject/appendArray - 错误处理") {
     Node invalid;
     auto err = invalid.appendObject();
     CHECK(!err.isValid());
-    CHECK(err.isError());
+    CHECK(err.isValid() == false);
 
     Node obj = Node::createObject();
     auto err2 = obj.append(1);
@@ -755,7 +753,7 @@ TEST_CASE("Node append/appendObject/appendArray - 错误处理") {
 
     auto err3 = obj.appendObject();
     CHECK(!err3.isValid());
-    CHECK(err3.isError());
+    CHECK(err3.isValid() == false);
 }
 
 TEST_CASE("Node append 链式调用测试") {
@@ -828,7 +826,6 @@ TEST_CASE("Node fromJson 测试 - 有效JSON") {
     // 对象
     Node obj = Node::fromJson(R"({"name": "Alice", "age": 30})");
     CHECK(obj.isValid());
-    CHECK(!obj.isError());
     CHECK(obj.get("name").getValue<std::string>() == "Alice");
     CHECK(obj.get("age").getValue<int64_t>() == 30);
 
@@ -884,16 +881,16 @@ TEST_CASE("Node fromJson 测试 - 有效JSON") {
 TEST_CASE("Node fromJson 测试 - 无效JSON") {
     Node invalid1 = Node::fromJson("{bad}");
     CHECK(!invalid1.isValid());
-    CHECK(invalid1.isError());
+    CHECK(invalid1.isValid() == false);
     CHECK(!invalid1.getError().empty());
 
     Node invalid2 = Node::fromJson("[1, 2");
     CHECK(!invalid2.isValid());
-    CHECK(invalid2.isError());
+    CHECK(invalid2.isValid() == false);
 
     Node invalid3 = Node::fromJson("undefined");
     CHECK(!invalid3.isValid());
-    CHECK(invalid3.isError());
+    CHECK(invalid3.isValid() == false);
 }
 
 TEST_CASE("Node toJson 和 fromJson 循环测试") {
@@ -1041,7 +1038,7 @@ TEST_CASE("Node setArray 在无效节点上") {
     Node invalid;
     Node result = invalid.setArray("key");
     CHECK(!result.isValid());
-    CHECK(result.isError());
+    CHECK(result.isValid() == false);
 }
 
 TEST_CASE("Node set 在无效或非对象节点上 - 确保返回分支覆盖") {
@@ -1274,24 +1271,24 @@ TEST_CASE("Node 错误信息验证") {
 
     // 键不存在
     Node err1 = obj.get("missing");
-    CHECK(err1.isError());
+    CHECK(err1.isValid() == false);
     CHECK(err1.getError().find("not found") != std::string::npos);
 
     // 无效节点访问
     Node invalid;
     Node err2 = invalid.get("key");
-    CHECK(err2.isError());
+    CHECK(err2.isValid() == false);
     CHECK(err2.getError().find("invalid") != std::string::npos);
 
     // 非对象访问
     Node arr = Node::createArray();
     Node err3 = arr.get("key");
-    CHECK(err3.isError());
+    CHECK(err3.isValid() == false);
     CHECK(err3.getError().find("non-object") != std::string::npos);
 
     // 数组越界
     Node err4 = arr.at(0);
-    CHECK(err4.isError());
+    CHECK(err4.isValid() == false);
     CHECK(err4.getError().find("out of bounds") != std::string::npos);
 }
 
@@ -1311,7 +1308,7 @@ TEST_CASE("Node 从无效JSON解析") {
     for (const auto& json : invalidJsons) {
         Node node = Node::fromJson(json);
         CHECK(!node.isValid());
-        CHECK(node.isError());
+        CHECK(node.isValid() == false);
     }
 }
 

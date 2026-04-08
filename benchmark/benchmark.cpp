@@ -274,7 +274,7 @@ void runConformanceTest() {
         }
 
         Node node = Node::fromJson(jsonStr);
-        if (node.isValid() && !node.isError()) {
+        if (node.isValid()) {
             passSuccess++;
             std::cout << "  [PASS] " << fs::path(filepath).filename() << std::endl;
         } else {
@@ -313,7 +313,7 @@ void runConformanceTest() {
         }
 
         Node node = Node::fromJson(jsonStr);
-        if (node.isError() || !node.isValid()) {
+        if (!node.isValid()) {
             failSuccess++;
             std::cout << "  [PASS] " << fs::path(filepath).filename() << std::endl;
         } else {
@@ -393,7 +393,7 @@ void runRoundtripTest() {
 
         // 第一次解析
         Node node1 = Node::fromJson(jsonStr);
-        if (!node1.isValid() || node1.isError()) {
+        if (!node1.isValid()) {
             failCount++;
             std::cout << "[FAIL] " << filename << " - 解析失败" << std::endl;
             continue;
@@ -404,7 +404,7 @@ void runRoundtripTest() {
 
         // 第二次解析
         Node node2 = Node::fromJson(serialized);
-        if (!node2.isValid() || node2.isError()) {
+        if (!node2.isValid()) {
             failCount++;
             std::cout << "[FAIL] " << filename << " - 序列化后解析失败" << std::endl;
             continue;

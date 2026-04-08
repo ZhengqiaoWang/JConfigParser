@@ -377,11 +377,15 @@ public:
     /**
      * @brief 检查节点是否有效
      * @return bool 节点有效返回 true，否则返回 false
-     * @details 无效节点是指未正确初始化或操作失败的节点
+     * @details 无效情况包括：
+     *   - 未初始化（默认构造）
+     *   - 已被移动（移动后的源对象）
+     *   - 操作失败（键不存在、索引越界、解析错误等）
      */
     bool isValid() const
     {
-        return doc_ != nullptr && node_ != nullptr;
+        // 节点必须指向有效的文档和值，且没有错误
+        return doc_ != nullptr && node_ != nullptr && error_.empty();
     }
 
     /**
@@ -394,18 +398,10 @@ public:
     }
 
     /**
-     * @brief 检查节点是否有错误
-     * @return bool 有错误返回 true，否则返回 false
-     */
-    bool isError() const
-    {
-        return !error_.empty();
-    }
-
-    /**
      * @brief 获取错误信息
      * @return std::string 错误信息字符串
      * @details 如果没有错误则返回空字符串
+     * @note 通常配合 isValid() 使用：`if (!node.isValid()) { cout << node.getError(); }`
      */
     std::string getError() const
     {
