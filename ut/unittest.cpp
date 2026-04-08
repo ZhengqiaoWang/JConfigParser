@@ -42,19 +42,19 @@ TEST_CASE("Node 字符串构造测试") {
     // std::string 构造
     Node strNode1(std::string("test"));
     CHECK(strNode1.isValid());
-    CHECK(strNode1.isString());
+    CHECK(strNode1.is<std::string>());
     CHECK(strNode1.getValue<std::string>() == "test");
 
     // const char* 构造
     Node strNode2("hello");
     CHECK(strNode2.isValid());
-    CHECK(strNode2.isString());
+    CHECK(strNode2.is<std::string>());
     CHECK(strNode2.getValue<std::string>() == "hello");
 
     // 空字符串
     Node emptyStr("");
     CHECK(emptyStr.isValid());
-    CHECK(emptyStr.isString());
+    CHECK(emptyStr.is<std::string>());
     CHECK(emptyStr.getValue<std::string>() == "");
 }
 
@@ -62,31 +62,31 @@ TEST_CASE("Node 整数构造测试") {
     // int 构造
     Node intNode1(42);
     CHECK(intNode1.isValid());
-    CHECK(intNode1.isInt64());
+    CHECK(intNode1.is<int64_t>());
     CHECK(intNode1.isNumber());
     CHECK(intNode1.getValue<int64_t>() == 42);
 
     // int64_t 构造
     Node intNode2(int64_t(123456789));
     CHECK(intNode2.isValid());
-    CHECK(intNode2.isInt64());
+    CHECK(intNode2.is<int64_t>());
     CHECK(intNode2.getValue<int64_t>() == 123456789);
 
     // 负数
     Node negative(-100);
     CHECK(negative.isValid());
-    CHECK(negative.isInt64());
+    CHECK(negative.is<int64_t>());
     CHECK(negative.getValue<int64_t>() == -100);
 
     // 大整数
     Node bigInt(INT64_MAX);
     CHECK(bigInt.isValid());
-    CHECK(bigInt.isInt64());
+    CHECK(bigInt.is<int64_t>());
     CHECK(bigInt.getValue<int64_t>() == INT64_MAX);
 
     Node bigIntNeg(INT64_MIN);
     CHECK(bigIntNeg.isValid());
-    CHECK(bigIntNeg.isInt64());
+    CHECK(bigIntNeg.is<int64_t>());
     CHECK(bigIntNeg.getValue<int64_t>() == INT64_MIN);
 }
 
@@ -94,20 +94,20 @@ TEST_CASE("Node 浮点数构造测试") {
     // double 构造
     Node doubleNode1(3.14);
     CHECK(doubleNode1.isValid());
-    CHECK(doubleNode1.isDouble());
+    CHECK(doubleNode1.is<double>());
     CHECK(doubleNode1.isNumber());
     CHECK(doubleNode1.getValue<double>() == 3.14);
 
     // 负浮点数
     Node doubleNode2(-2.5);
     CHECK(doubleNode2.isValid());
-    CHECK(doubleNode2.isDouble());
+    CHECK(doubleNode2.is<double>());
     CHECK(doubleNode2.getValue<double>() == -2.5);
 
     // 零
     Node zero(0.0);
     CHECK(zero.isValid());
-    CHECK(zero.isDouble());
+    CHECK(zero.is<double>());
     CHECK(zero.getValue<double>() == 0.0);
 }
 
@@ -115,13 +115,13 @@ TEST_CASE("Node 布尔值构造测试") {
     // true
     Node trueNode(true);
     CHECK(trueNode.isValid());
-    CHECK(trueNode.isBool());
+    CHECK(trueNode.is<bool>());
     CHECK(trueNode.getValue<bool>() == true);
 
     // false
     Node falseNode(false);
     CHECK(falseNode.isValid());
-    CHECK(falseNode.isBool());
+    CHECK(falseNode.is<bool>());
     CHECK(falseNode.getValue<bool>() == false);
 }
 
@@ -259,37 +259,37 @@ TEST_CASE("Node getError 测试") {
 
 // ==================== 类型判断测试 ====================
 
-TEST_CASE("Node isString 测试") {
-    CHECK(Node("test").isString());
-    CHECK(Node(std::string("hello")).isString());
-    CHECK(!Node(42).isString());
-    CHECK(!Node(3.14).isString());
-    CHECK(!Node(true).isString());
-    CHECK(!Node::createObject().isString());
-    CHECK(!Node::createArray().isString());
+TEST_CASE("Node is<std::string> 测试") {
+    CHECK(Node("test").is<std::string>());
+    CHECK(Node(std::string("hello")).is<std::string>());
+    CHECK(!Node(42).is<std::string>());
+    CHECK(!Node(3.14).is<std::string>());
+    CHECK(!Node(true).is<std::string>());
+    CHECK(!Node::createObject().is<std::string>());
+    CHECK(!Node::createArray().is<std::string>());
 }
 
-TEST_CASE("Node isInt64 测试") {
-    CHECK(Node(42).isInt64());
-    CHECK(Node(int64_t(100)).isInt64());
-    CHECK(!Node("test").isInt64());
-    CHECK(!Node(3.14).isInt64());
-    CHECK(!Node(true).isInt64());
+TEST_CASE("Node is<int64_t> 测试") {
+    CHECK(Node(42).is<int64_t>());
+    CHECK(Node(int64_t(100)).is<int64_t>());
+    CHECK(!Node("test").is<int64_t>());
+    CHECK(!Node(3.14).is<int64_t>());
+    CHECK(!Node(true).is<int64_t>());
 }
 
-TEST_CASE("Node isDouble 测试") {
-    CHECK(Node(3.14).isDouble());
-    CHECK(Node(double(2.5)).isDouble());
-    CHECK(!Node("test").isDouble());
-    CHECK(!Node(42).isDouble());
+TEST_CASE("Node is<double> 测试") {
+    CHECK(Node(3.14).is<double>());
+    CHECK(Node(double(2.5)).is<double>());
+    CHECK(!Node("test").is<double>());
+    CHECK(!Node(42).is<double>());
 }
 
-TEST_CASE("Node isBool 测试") {
-    CHECK(Node(true).isBool());
-    CHECK(Node(false).isBool());
-    CHECK(!Node("test").isBool());
-    CHECK(!Node(42).isBool());
-    CHECK(!Node(3.14).isBool());
+TEST_CASE("Node is<bool> 测试") {
+    CHECK(Node(true).is<bool>());
+    CHECK(Node(false).is<bool>());
+    CHECK(!Node("test").is<bool>());
+    CHECK(!Node(42).is<bool>());
+    CHECK(!Node(3.14).is<bool>());
 }
 
 TEST_CASE("Node isObject 测试") {
@@ -841,18 +841,18 @@ TEST_CASE("Node fromJson 测试 - 有效JSON") {
     // 布尔值
     Node b1 = Node::fromJson("true");
     CHECK(b1.isValid());
-    CHECK(b1.isBool());
+    CHECK(b1.is<bool>());
     CHECK(b1.getValue<bool>() == true);
 
     Node b2 = Node::fromJson("false");
     CHECK(b2.isValid());
-    CHECK(b2.isBool());
+    CHECK(b2.is<bool>());
     CHECK(b2.getValue<bool>() == false);
 
     // 数字
     Node num = Node::fromJson("42.5");
     CHECK(num.isValid());
-    CHECK(num.isDouble());
+    CHECK(num.is<double>());
 
     // null
     Node n = Node::fromJson("null");
@@ -1013,7 +1013,7 @@ TEST_CASE("Node setArray 覆盖已存在的数组") {
 
     // 先设置一个普通值
     obj.set("arr", "not an array");
-    CHECK(obj.get("arr").isString());
+    CHECK(obj.get("arr").is<std::string>());
 
     // 再次调用setArray，应该覆盖并清空
     Node arr = obj.setArray("arr");
@@ -1167,13 +1167,58 @@ TEST_CASE("Node 构造函数 所有整数类型") {
     Node l(100L);            // long
     Node ll(1000LL);         // long long
     Node s(static_cast<short>(10));  // short
-    Node c('A');             // char
 
-    CHECK(i.isInt64());
-    CHECK(l.isInt64());
-    CHECK(ll.isInt64());
-    CHECK(s.isInt64());
-    CHECK(c.isInt64());
+    CHECK(i.is<int64_t>());
+    CHECK(l.is<int64_t>());
+    CHECK(ll.is<int64_t>());
+    CHECK(s.is<int64_t>());
+}
+
+TEST_CASE("Node char 类型的字符串转换") {
+    // 测试 char 类型转换为字符串（而不是ASCII整数）
+
+    Node c('A');
+    CHECK(c.is<std::string>());  // char 创建的是字符串
+    CHECK(c.is<char>());         // 也可以检查 char 类型
+    CHECK_FALSE(c.is<int64_t>()); // 不是整数类型
+    CHECK(c.toJson(false) == "\"A\""); // JSON 输出为字符串
+
+    Node sc(static_cast<signed char>('B'));
+    CHECK(sc.is<std::string>());
+    CHECK(sc.toJson(false) == "\"B\"");
+
+    Node uc(static_cast<unsigned char>('C'));
+    CHECK(uc.is<std::string>());
+    CHECK(uc.toJson(false) == "\"C\"");
+}
+
+TEST_CASE("Node getValue<char> 字符串取首字符") {
+    // 测试从字符串中提取第一个字符
+
+    Node str("Hello");
+    CHECK(str.is<std::string>());
+
+    char c = str.getValue<char>();
+    CHECK(c == 'H');
+
+    signed char sc = str.getValue<signed char>();
+    CHECK(sc == 'H');
+
+    unsigned char uc = str.getValue<unsigned char>();
+    CHECK(uc == 'H');
+
+    // 测试空字符串
+    Node empty("");
+    CHECK(empty.getValue<char>() == '\0');
+
+    // 测试非字符串类型
+    Node num(42);
+    CHECK(num.getValue<char>() == '\0');
+
+    // 测试 getValueOr<char>
+    CHECK(str.getValueOr<char>('X') == 'H');
+    CHECK(empty.getValueOr<char>('X') == 'X');
+    CHECK(num.getValueOr<char>('Y') == 'Y');
 }
 
 TEST_CASE("Node 构造函数 右值传递") {
@@ -1275,18 +1320,18 @@ TEST_CASE("Node JSON解析 各种有效类型") {
 
     // 数字类型
     Node n1 = Node::fromJson("42");
-    CHECK(n1.isInt64());
+    CHECK(n1.is<int64_t>());
 
     Node n2 = Node::fromJson("42.5");
-    CHECK(n2.isDouble());
+    CHECK(n2.is<double>());
 
     // 布尔值
     Node b1 = Node::fromJson("true");
-    CHECK(b1.isBool());
+    CHECK(b1.is<bool>());
     CHECK(b1.getValue<bool>() == true);
 
     Node b2 = Node::fromJson("false");
-    CHECK(b2.isBool());
+    CHECK(b2.is<bool>());
     CHECK(b2.getValue<bool>() == false);
 
     // null
