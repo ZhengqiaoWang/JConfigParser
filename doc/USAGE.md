@@ -325,7 +325,7 @@ int64_t val = arr.at(0).getValue<int64_t>();  // 1
 ### 获取数组长度
 
 ```cpp
-Node arr = Node::fromJson(R"([1, 2, 3]);
+Node arr = Node::fromJson(R"([1, 2, 3]);");
 // 1
 ```
 
@@ -336,8 +336,8 @@ Node arr = Node::fromJson(R"([1, 2, 3])");
 
 // 访问越界索引返回错误节点
 Node outOfBounds = arr.at(10);
-if (outOfBounds.isError()) {
-    std::cout << "Index out of bounds" << std::endl;
+if (!outOfBounds.isValid()) {
+    std::cout << "Index out of bounds: " << outOfBounds.getError() << std::endl;
 }
 ```
 
@@ -361,6 +361,26 @@ std::string formatted = obj.toJson(true);
 // {
 //   "name": "Alice",
 //   "age": 30
+// }
+
+// 自定义浮点数精度（默认 8 位）
+Node floatObj = Node::createObject();
+floatObj.set("pi", 3.14159265358979);
+floatObj.set("e", 2.71828182845904);
+
+// 默认 8 位精度
+std::string defaultPrecision = floatObj.toJson();
+// {"pi":3.14159265,"e":2.71828182}
+
+// 2 位精度
+std::string lowPrecision = floatObj.toJson(false, 2);
+// {"pi":3.14,"e":2.71}
+
+// 15 位精度 + 格式化输出
+std::string highPrecision = floatObj.toJson(true, 15);
+// {
+//   "pi": 3.141592653589793,
+//   "e": 2.718281828459045
 // }
 ```
 
@@ -390,7 +410,7 @@ Node nullVal = Node::fromJson(json4);
 std::string invalidJson = "{bad json}";
 Node node = Node::fromJson(invalidJson);
 
-if (node.isError()) {
+if (!node.isValid()) {
     std::cout << "Invalid JSON: " << node.getError() << std::endl;
 }
 ```
@@ -399,62 +419,141 @@ if (node.isError()) {
 
 ## 错误处理
 
-### 错误类型
+### 错误处理机制
+
+JConfigParser 使用 `isValid()` + `getError()` 组合处理错误，并提供 `operator bool()` 让代码更简洁，配合强大的 `getValueOr()` 方法，提供了灵活而安全的 JSON 操作方式。
+
+#### isValid() 和 operator bool()
+
+**`isValid()`** 返回 `true` 表示节点可用，返回 `false` 表示节点不可用。
+
+**`operator bool()`** 提供了更简洁的写法，可以直接在 `if` 语句中使用节点对象：
+
+```cpp
+// 两种方式等价：
+if (!node.isValid()) { ... }  // 使用 isValid()
+if (!node) { ... }             // 使用 operator bool() - 更简洁！
+```
+
+**isValid() / operator bool() 返回 false 的情况：**
+
+| 情况 | 说明 | 错误信息示例 |
+|------|------|------------|
+| 键不存在 | 访问对象不存在的键 | `"Key 'missing' not found"` |
+| 索引越界 | 数组访问超出范围 | `"Array index out of bounds: 10"` |
+| JSON 解析失败 | JSON 格式错误 | `"JSON parse error at offset 1"` |
+| 节点已移动 | 移动后的源对象（已失效） | `""`（空） |
+| 未初始化 | 默认构造的节点 | `""`（空） |
+
+#### 最佳实践
+
+**方式 1：最简单 - 使用 getValueOr()（推荐 90% 的场景）**
+
+```cpp
+// 一行代码搞定，不需要任何检查
+std::string host = config.get("host").getValueOr("localhost");
+int port = config.get("port").getValueOr(8080);
+int timeout = config.get("timeout").getValueOr(30);
+```
+
+这是**最常用、最简单、最安全**的方式！
+
+**方式 2：检查必需字段**
+
+```cpp
+// 必需字段必须存在，不存在就报错
+// 使用 operator bool() - 更简洁！
+Node host = config.get("host");
+if (!host) {
+    std::cerr << "配置错误: " << host.getError() << std::endl;
+    exit(1);
+}
+// 现在可以放心使用
+std::string hostValue = host.getValue<std::string>();
+```
+
+使用 `operator bool()` 的优势：
+- ✅ 代码更简洁：`if (!node)` 比 `if (!node.isValid())` 更短
+- ✅ 符合 C++ 惯用法：类似于智能指针的使用方式
+- ✅ 功能完全等价：`operator bool()` 直接调用 `isValid()`
+
+**方式 3：JSON 解析后验证**
+
+```cpp
+// JSON 解析后必须检查
+Node doc = Node::fromJson(jsonStr);
+if (!doc) {  // 使用 operator bool() 更简洁
+    std::cerr << "解析失败: " << doc.getError() << std::endl;
+    return false;
+}
+// 解析成功，继续处理...
+```
+if (!doc.isValid()) {
+    std::cerr << "解析失败: " << doc.getError() << std::endl;
+    return false;
+}
+// 解析成功，继续处理...
+```
+
+**方式 4：数组访问**
+
+```cpp
+Node users = data.get("users");
+if (!users.isValid()) {
+    std::cerr << "没有 users 字段: " << users.getError() << std::endl;
+    return;
+}
+
+if (!users.isArray()) {
+    std::cerr << "users 不是数组" << std::endl;
+    return;
+}
+
+// 循环处理数组元素
+for (int i = 0; i < users.size(); i++) {
+    Node user = users.at(i);
+    if (!user.isValid()) {
+        std::cerr << "索引 " << i << " 越界" << std::endl;
+        continue;
+    }
+    // 安全使用 user
+    std::string name = user.get("name").getValueOr("Unknown");
+    int age = user.get("age").getValueOr(0);
+}
+```
+
+#### 决策流程
+
+```
+你需要做什么？
+│
+├─ 字段有就用，没有就用默认值
+│  └─ 用 getValueOr(default) ← 最简单！
+│
+├─ 字段必须存在，不存在就报错
+│  └─ 用 if (!node.isValid()) { ... }
+│     std::cerr << node.getError();
+│
+└─ JSON 解析后验证
+   └─ 用 if (!doc.isValid()) { ... }
+
+💡 一句话：不确定就用 getValueOr()！
+```
+
+#### 常见错误信息
 
 ```cpp
 Node obj = Node::createObject();
-
-// 1. 键不存在
- Node missing = obj.get("nonexistent");
-// missing.isError() == true
-
-// 2. 非对象类型访问
 Node arr = Node::createArray();
-Node err = arr.get("key");
-// err.isError() == true
 
-// 3. 数组越界
-Node arr2 = Node::fromJson(R"([1, 2])");
-Node outOfBounds = arr2.at(10);
-// outOfBounds.isError() == true
+obj.get("missing").getError()
+// → "Key 'missing' not found"
 
-// 4. 无效 JSON
-Node invalid = Node::fromJson("{invalid json}");
-// invalid.isError() == true
-```
+arr.at(0).getError()
+// → "Array index out of bounds: 0"
 
-### 安全的值访问
-
-```cpp
-Node obj = Node::createObject();
-
-// 方法1：先检查是否存在
-if (obj.has("name")) {
-    std::string name = obj.get("name").getValue<std::string>();
-}
-
-// 方法2：使用默认值
-std::string name = obj.get("name").getValueOr("Unknown");
-
-// 方法3：检查错误
-Node nameNode = obj.get("name");
-if (nameNode.isError()) {
-    std::cout << "Key not found: " << nameNode.getError() << std::endl;
-} else {
-    std::string name = nameNode.getValue<std::string>();
-}
-```
-
-### 错误信息
-
-```cpp
-Node obj = Node::createObject();
-Node err = obj.get("missing");
-
-if (err.isError()) {
-    std::cout << "Error: " << err.getError() << std::endl;
-    // 输出: Error: Key 'missing' not found in object
-}
+Node::fromJson("{bad}").getError()
+// → "JSON parse error at offset 1"
 ```
 
 ---
@@ -499,7 +598,7 @@ char first = abbr.getValue<char>();  // 'N'
 ```cpp
 // 空字符串返回 '\0'
 Node empty("");
-char c1 = empty.getValue<char();  // '\0'
+char c1 = empty.getValue<char>();  // '\0'
 
 // 非字符串返回 '\0'
 Node num(42);
@@ -593,7 +692,67 @@ for (size_t i = 0; i < arr.size(); i++) {
 
 ## 最佳实践
 
-### 1. 类型安全
+### 1. 错误处理（最重要！）
+
+记住这三个层次：
+
+#### 层次 1：最简单 - getValueOr()（推荐 90% 的场景）
+
+```cpp
+// ✅ 日常使用：一行代码搞定，不需要 isValid 检查
+std::string host = config.get("host").getValueOr("localhost");
+int port = config.get("port").getValueOr(8080);
+int timeout = config.get("timeout").getValueOr(30);
+```
+
+这是**最常用、最简单、最安全**的方式！
+
+#### 层次 2：需要错误信息 - isValid() + getError()
+
+```cpp
+// ✅ 必需字段或需要详细错误信息时
+Node host = config.get("host");
+if (!host.isValid()) {
+    std::cerr << "配置错误: " << host.getError() << std::endl;
+    exit(1);
+}
+
+// JSON 解析后必须检查
+Node doc = Node::fromJson(jsonStr);
+if (!doc.isValid()) {
+    std::cerr << "解析失败: " << doc.getError() << std::endl;
+    return false;
+}
+```
+
+#### 层次 3：操作前安全检查 - isValid()
+
+```cpp
+// ✅ 从未知来源获得节点时
+Node node = someFunction();
+if (!node.isValid()) {
+    return false;
+}
+// 现在可以安全操作
+node.set("key", "value");
+```
+
+---
+
+#### 什么时候用哪个？
+
+| 操作                    | 用哪一个      | 例子                                     |
+|-------------------------|--------------|------------------------------------------|
+| 读取可选配置项          | getValueOr() | `config.get("port").getValueOr(8080)`    |
+| 检查必需字段            | isValid()    | `if (!config.get("id").isValid()) ...`   |
+| JSON 解析后验证        | isValid()    | `if (!doc.isValid()) ...`                 |
+| 需要打印错误信息        | isValid()    | 配合 `getError()`                         |
+| 操作节点前（set等）    | isValid()    | `if (node.isValid()) node.set(...)`       |
+| 获得未知来源的节点     | isValid()    | `if (!result.isValid()) return`           |
+
+**一句话总结：不确定就用 `getValueOr()`！**
+
+### 2. 类型安全
 
 始终使用 `is<T>()` 检查类型后再读取：
 
@@ -607,33 +766,24 @@ if (node.is<int64_t>()) {
 int64_t value = node.getValue<int64_t>();
 ```
 
-### 2. 使用默认值
+### 3. 零拷贝构建
 
-对于可选字段，使用 `getValueOr()`：
-
-```cpp
-// ✅ 好的做法
-std::string name = obj.get("name").getValueOr("Unknown");
-int64_t age = obj.get("age").getValueOr(0);
-
-// ❌ 避免：可能崩溃或返回空值
-std::string name = obj.get("name").getValue<std::string>();
-```
-
-### 3. 检查错误
-
-始终检查操作是否成功：
+使用生态系统方法高效创建嵌套结构：
 
 ```cpp
-// ✅ 好的做法
-Node node = obj.get("key");
-if (node.isError()) {
-    std::cout << "Error: " << node.getError() << std::endl;
-    // 处理错误
-}
+// ✅ 推荐：使用 setObject/setArray 避免拷贝
+Node config = Node::createObject();
+Node db = config.setObject("database");
+db.set("host", "localhost")
+  .set("port", 5432);
 
-// ❌ 避免：可能访问无效节点
-std::string value = obj.get("key").getValue<std::string>();
+Node pool = db.setObject("pool");
+pool.set("min", 5).set("max", 20);
+
+// ❌ 避免：创建临时对象后赋值
+Node temp = Node::createObject();
+temp.set("host", "localhost");
+config.set("database", temp);  // 产生拷贝
 ```
 
 ### 4. 链式调用

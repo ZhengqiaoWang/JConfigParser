@@ -1370,6 +1370,171 @@ TEST_CASE("Node 大对象键测试") {
     CHECK(std::find(keys.begin(), keys.end(), "key_49") != keys.end());
 }
 
+TEST_CASE("Node operator bool() 测试") {
+    // 测试有效的节点
+    Node valid = Node::createObject();
+    CHECK(static_cast<bool>(valid) == true);
+    CHECK(valid);  // 隐式使用 operator bool()
+    if (valid) {   // 使用 if(node)
+        CHECK(valid.isValid());
+    }
+
+    valid.set("key", "value");
+    CHECK(static_cast<bool>(valid) == true);
+    CHECK(valid);
+
+    // 测试无效的节点
+    Node invalid;
+    CHECK(static_cast<bool>(invalid) == false);
+    CHECK(!invalid);
+
+    // 测试移动后的节点
+    Node obj1 = Node::createObject();
+    Node obj2 = std::move(obj1);
+    CHECK(static_cast<bool>(obj2) == true);
+    CHECK(static_cast<bool>(obj1) == false);  // 移动后无效
+    CHECK(!obj1);
+
+    // 测试访问不存在的键
+    Node obj = Node::createObject();
+    obj.set("name", "Alice");
+    Node missing = obj.get("age");
+    CHECK(static_cast<bool>(missing) == false);
+    CHECK(!missing);
+
+    Node exists = obj.get("name");
+    CHECK(static_cast<bool>(exists) == true);
+    CHECK(exists);
+
+    // 测试数组越界
+    Node arr = Node::createArray();
+    arr.append(1).append(2).append(3);
+    Node valid_item = arr.at(0);
+    CHECK(static_cast<bool>(valid_item) == true);
+    CHECK(valid_item);
+
+    Node out_of_bounds = arr.at(10);
+    CHECK(static_cast<bool>(out_of_bounds) == false);
+    CHECK(!out_of_bounds);
+
+    // 测试 JSON 解析
+    Node validJson = Node::fromJson(R"({"x": 1})");
+    CHECK(static_cast<bool>(validJson) == true);
+    CHECK(validJson);
+
+    Node invalidJson = Node::fromJson("{bad}");
+    CHECK(static_cast<bool>(invalidJson) == false);
+    CHECK(!invalidJson);
+
+    // 检查与 isValid() 的一致性
+    Node test1 = Node::createObject();
+    CHECK(static_cast<bool>(test1) == test1.isValid());
+
+    Node test2 = obj.get("missing");
+    CHECK(static_cast<bool>(test2) == test2.isValid());
+
+    Node test3 = Node::fromJson("{invalid}");
+    CHECK(static_cast<bool>(test3) == test3.isValid());
+}
+
+TEST_CASE("Node toJson 浮点数精度测试") {
+    Node obj = Node::createObject();
+    obj.set("pi", 3.14159265358979323846);
+    obj.set("e", 2.71828182845904523536);
+    obj.set("large", 123456789.123456789);
+    obj.set("small", 0.00000000123456789);
+
+    // 测试默认精度（8 位）
+    std::string defaultPrecision = obj.toJson();
+    CHECK(defaultPrecision.find("\"pi\":3.14159265") != std::string::npos);
+
+    // 测试 2 位精度
+    std::string lowPrecision = obj.toJson(false, 2);
+    CHECK(lowPrecision.find("\"pi\":3.14") != std::string::npos);
+    CHECK(lowPrecision.find("\"pi\":3.141") == std::string::npos);
+    CHECK(lowPrecision.find("\"large\":123456789.12") != std::string::npos);
+
+    // 测试 5 位精度
+    std::string mediumPrecision = obj.toJson(false, 5);
+    CHECK(mediumPrecision.find("\"pi\":3.14159") != std::string::npos);
+    CHECK(mediumPrecision.find("\"pi\":3.141592") == std::string::npos);
+    CHECK(mediumPrecision.find("\"e\":2.71828") != std::string::npos);
+
+    // 测试 15 位精度
+    std::string highPrecision = obj.toJson(false, 15);
+    CHECK(highPrecision.find("\"pi\":3.141592653589793") != std::string::npos);
+    CHECK(highPrecision.find("\"pi\":3.1415926535897932") == std::string::npos);
+    CHECK(highPrecision.find("\"e\":2.718281828459045") != std::string::npos);
+
+    // 测试 1 位精度（最小值）
+    std::string onePrecision = obj.toJson(false, 1);
+    CHECK(onePrecision.find("\"pi\":3.1") != std::string::npos);
+    CHECK(onePrecision.find("\"pi\":3.14") == std::string::npos);
+
+    // 测试超出范围的精度（应该被限制在 1-17）
+    std::string negativePrecision = obj.toJson(false, -5);  // 应该被限制为 1
+    CHECK(negativePrecision.find("\"pi\":3.1") != std::string::npos);
+
+    std::string zeroPrecision = obj.toJson(false, 0);  // 应该被限制为 1
+    CHECK(zeroPrecision.find("\"pi\":3.1") != std::string::npos);
+
+    std::string tooHighPrecision = obj.toJson(false, 20);  // 应该被限制为 17
+    CHECK(highPrecision.find("\"pi\":3.141592653589793") != std::string::npos);
+    // 17 位精度应该显示更多小数位
+
+    // 测试美化格式 + 自定义精度
+    std::string prettyWithPrecision = obj.toJson(true, 4);
+    CHECK(prettyWithPrecision.find("\"pi\": 3.1415") != std::string::npos);
+    CHECK(prettyWithPrecision.find("\n") != std::string::npos);  // 应该有换行
+
+    // 测试无效节点
+    Node invalid;
+    std::string invalidJson = invalid.toJson(false, 5);
+    CHECK(invalidJson == "null");
+
+    // 测试数组中的浮点数
+    Node arr = Node::createArray();
+    arr.append(3.14159265358979);
+    arr.append(2.71828182845904);
+    arr.append(1.41421356237309);
+
+    std::string arrDefault = arr.toJson();
+    CHECK(arrDefault.find("3.14159265") != std::string::npos);
+
+    std::string arrLow = arr.toJson(false, 2);
+    CHECK(arrLow.find("3.14") != std::string::npos);
+    CHECK(arrLow.find("2.71") != std::string::npos);
+    CHECK(arrLow.find("1.41") != std::string::npos);
+
+    std::string arrHigh = arr.toJson(false, 10);
+    CHECK(arrHigh.find("3.1415926535") != std::string::npos);
+}
+
+TEST_CASE("Node toJson 向后兼容性测试") {
+    // 确保旧的调用方式仍然有效
+    Node obj = Node::createObject();
+    obj.set("name", "test");
+    obj.set("value", 3.14159265358979);
+
+    // 无参数调用
+    std::string json1 = obj.toJson();
+    CHECK(json1.find("\"name\":\"test\"") != std::string::npos);
+
+    // 单参数调用（pretty）
+    std::string json2 = obj.toJson(false);
+    CHECK(json2.find("\"name\":\"test\"") != std::string::npos);
+
+    std::string json3 = obj.toJson(true);
+    CHECK(json3.find("\"name\": \"test\"") != std::string::npos);
+
+    // 双参数调用（pretty + precision）
+    std::string json4 = obj.toJson(false, 2);
+    CHECK(json4.find("\"value\":3.14") != std::string::npos);
+
+    std::string json5 = obj.toJson(true, 5);
+    CHECK(json5.find("\"value\": 3.14159") != std::string::npos);
+}
+
 DOCTEST_MSVC_SUPPRESS_WARNING_POP
 
 int main(int argc, char** argv)

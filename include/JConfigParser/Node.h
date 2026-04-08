@@ -389,6 +389,26 @@ public:
     }
 
     /**
+     * @brief bool 转换运算符（显式）
+     * @return bool 节点有效返回 true，否则返回 false
+     * @details 作用等同于 isValid()，提供更简洁的写法
+     *
+     * 使用示例：
+     * @code
+     *   Node node = obj.get("key");
+     *   if (!node) {  // 等同于 if (!node.isValid())
+     *       std::cerr << node.getError() << std::endl;
+     *   }
+     * @endcode
+     *
+     * @note 使用 explicit 关键字防止隐式转换（如与整数比较）
+     */
+    explicit operator bool() const
+    {
+        return isValid();
+    }
+
+    /**
      * @brief 检查节点是否为 null
      * @return bool 节点为 null 返回 true，否则返回 false
      */
@@ -885,21 +905,53 @@ public:
      */
     std::string toJson(bool pretty = false) const
     {
+        return toJson(pretty, 8);  // 默认精度为 8
+    }
+
+    /**
+     * @brief 将节点序列化为 JSON 字符串（支持自定义浮点数精度）
+     * @param pretty 是否美化格式（缩进和换行）
+     * @param decimalPlaces 浮点数精度（1-17），默认值为 8
+     * @return std::string JSON 字符串
+     * @details 
+     * - decimalPlaces 控制浮点数的十进制位数
+     * - 取值范围：1-17（RapidJSON 支持的范围）
+     * - 如果超出范围，会自动限制在有效范围内（<1 会被限制为 1）
+     * - 如果节点无效，返回 "null"
+     *
+     * 示例：
+     * @code
+     * Node obj = Node::createObject();
+     * obj.set("pi", 3.14159265358979323846);
+     * obj.set("e", 2.71828182845904523536);
+     *
+     * std::string defaultPrecision = obj.toJson();  // 默认 8 位精度
+     * std::string lowPrecision = obj.toJson(false, 2);  // 2 位精度
+     * std::string highPrecision = obj.toJson(true, 15); // 15 位精度，美化格式
+     * @endcode
+     */
+    std::string toJson(bool pretty, int decimalPlaces) const
+    {
         if (!isValid())
         {
             return "null";
         }
+
+        // 限制精度范围在 1-17（RapidJSON 要求最小为 1）
+        decimalPlaces = std::max(1, std::min(17, decimalPlaces));
 
         rapidjson::StringBuffer buffer;
 
         if (pretty)
         {
             rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+            writer.SetMaxDecimalPlaces(decimalPlaces);
             node_->Accept(writer);
         }
         else
         {
             rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+            writer.SetMaxDecimalPlaces(decimalPlaces);
             node_->Accept(writer);
         }
 
