@@ -332,6 +332,12 @@ public:
      * @brief 克隆当前节点
      * @return Node 克隆的节点
      * @details 执行深拷贝，返回一个完全独立的副本
+     *
+     * 行为：
+     * - 根节点（node_ == doc_）：克隆整个文档
+     * - 子节点（node_ != doc_）：将子节点复制到新文档的根节点
+     *
+     * 返回的节点拥有独立的文档，不依赖原节点的内存
      */
     Node clone() const
     {
@@ -407,10 +413,12 @@ public:
      * @return bool 类型匹配返回 true，否则返回 false
      *
      * 支持的类型：
-     * - std::string / const char*
-     * - int64_t
+     * - std::string / const char* / char / signed char / unsigned char
+     * - int64_t / uint64_t
      * - double
      * - bool
+     *
+     * 注意：char/signed char/unsigned char 在 JSON 中表示为单字符字符串
      */
     template <typename T>
     bool is() const
