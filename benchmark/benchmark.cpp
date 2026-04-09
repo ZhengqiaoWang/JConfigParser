@@ -15,6 +15,8 @@
 #include <windows.h>
 #endif
 
+using namespace ConfigParser;
+
 namespace fs = std::filesystem;
 
 // ==================== 工具函数 ====================

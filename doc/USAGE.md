@@ -20,11 +20,29 @@
 
 ## 快速开始
 
+### 命名空间
+
+JConfigParser 的所有类都位于 `ConfigParser` 命名空间中，避免与其他库产生命名冲突。
+
+```cpp
+#include "JConfigParser/Node.h"
+
+// 方式 1: 使用 using directive（推荐）
+using namespace ConfigParser;
+
+Node obj = Node::createObject();
+
+// 方式 2: 使用完整命名空间
+ConfigParser::Node obj2 = ConfigParser::Node::createObject();
+```
+
 ### 最简单的例子
 
 ```cpp
 #include "JConfigParser/Node.h"
 #include <iostream>
+
+using namespace ConfigParser;
 
 int main() {
     // 创建 JSON 对象
@@ -56,6 +74,9 @@ int main() {
 ### 创建对象
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 创建空对象
 Node obj = Node::createObject();
 ```
@@ -63,6 +84,9 @@ Node obj = Node::createObject();
 ### 创建数组
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 创建空数组
 Node arr = Node::createArray();
 ```
@@ -70,6 +94,9 @@ Node arr = Node::createArray();
 ### 创建值节点
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 字符串
 Node str("Hello");
 Node str2(std::string("World"));
@@ -92,6 +119,9 @@ Node nullVal = Node::fromJson("null");
 ### 设置基本值
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 
 // 字符串
@@ -119,16 +149,22 @@ obj.set("initial", 'B');
 ### 覆盖已存在的键
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 obj.set("value", 10);
 obj.set("value", 20);  // 覆盖为 20
 
-std::cout << obj.get("value").getValue<int64_t>();  // 输出: 20
+std::cout << obj.get("value").getValue<int64_t>();  // 输出：20
 ```
 
 ### 链式调用
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject()
     .set("name", "Charlie")
     .set("age", 35)
@@ -142,6 +178,9 @@ Node obj = Node::createObject()
 ### 安全读取
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::fromJson(R"({"name": "Alice", "age": 30})");
 
 // 读取字符串
@@ -160,6 +199,9 @@ bool active = obj.get("active").getValue<bool>();
 ### 使用默认值
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::fromJson(R"({"name": "Alice"})");
 
 // 键不存在时使用默认值
@@ -172,6 +214,9 @@ bool active = obj.get("active").getValueOr(false);             // false
 ### 类型不匹配
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node strNode("hello");
 
 // 从字符串读取整数会返回默认值 0
@@ -189,6 +234,9 @@ std::string str = numNode.getValue<std::string>();  // ""
 ### is<T>() 方法
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node node = Node::fromJson(R"({"name": "Alice", "age": 30, "active": true})");
 
 // 检查类型
@@ -206,6 +254,9 @@ bool isInt = grade.is<int64_t>();                         // false
 ### 基本类型检查
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 Node arr = Node::createArray();
 Node str("hello");
@@ -216,9 +267,8 @@ Node nullVal = Node::fromJson("null");
 // 基本类型检查
 bool isObject = obj.isObject();       // true
 bool isArray = arr.isArray();         // true
-bool isString = str.isString();       // true
+bool isString = str.is<std::string>(); // true
 bool isNumber = num.isNumber();       // true
-bool isBool = boolVal.isBool();       // true
 bool isNull = nullVal.isNull();       // true
 
 // 检查是否有效
@@ -233,6 +283,9 @@ bool invalid = Node().isValid();      // false
 ### 创建嵌套对象
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 
 // 创建嵌套对象
@@ -243,12 +296,15 @@ address.set("zip", "100000");
 
 // 访问嵌套数据
 std::string city = obj.get("address").get("city").getValue<std::string>();
-std::string zip = obj.get("address").get("zip").getValue<int64_t>();
+int64_t zip = obj.get("address").get("zip").getValue<int64_t>();
 ```
 
 ### 创建嵌套数组
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 
 // 创建嵌套数组
@@ -265,6 +321,9 @@ std::string hobby2 = obj.get("hobbies").at(1).getValue<std::string>();
 ### 复杂嵌套
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 
 // 创建多层嵌套
@@ -295,6 +354,9 @@ std::string name = obj.get("data").get("user").get("name").getValue<std::string>
 ### 创建和添加元素
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 创建数组
 Node arr = Node::createArray();
 
@@ -311,6 +373,9 @@ arr.append('A');  // char 转换为 "A"
 ### 访问数组元素
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node arr = Node::fromJson(R"([1, 2, 3, 4, 5])");
 
 // 通过索引访问
@@ -325,13 +390,19 @@ int64_t val = arr.at(0).getValue<int64_t>();  // 1
 ### 获取数组长度
 
 ```cpp
-Node arr = Node::fromJson(R"([1, 2, 3]);");
-// 1
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
+Node arr = Node::fromJson(R"([1, 2, 3])");
+size_t len = arr.size();  // 3
 ```
 
 ### 数组越界
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node arr = Node::fromJson(R"([1, 2, 3])");
 
 // 访问越界索引返回错误节点
@@ -348,6 +419,9 @@ if (!outOfBounds.isValid()) {
 ### 转换为 JSON 字符串
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 obj.set("name", "Alice");
 obj.set("age", 30);
@@ -387,6 +461,9 @@ std::string highPrecision = floatObj.toJson(true, 15);
 ### 解析 JSON 字符串
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 解析对象
 std::string json1 = R"({"name": "Alice", "age": 30})";
 Node obj = Node::fromJson(json1);
@@ -407,6 +484,9 @@ Node nullVal = Node::fromJson(json4);
 ### 处理无效 JSON
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 std::string invalidJson = "{bad json}";
 Node node = Node::fromJson(invalidJson);
 
@@ -430,6 +510,9 @@ JConfigParser 使用 `isValid()` + `getError()` 组合处理错误，并提供 `
 **`operator bool()`** 提供了更简洁的写法，可以直接在 `if` 语句中使用节点对象：
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 两种方式等价：
 if (!node.isValid()) { ... }  // 使用 isValid()
 if (!node) { ... }             // 使用 operator bool() - 更简洁！
@@ -450,6 +533,9 @@ if (!node) { ... }             // 使用 operator bool() - 更简洁！
 **方式 1：最简单 - 使用 getValueOr()（推荐 90% 的场景）**
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 一行代码搞定，不需要任何检查
 std::string host = config.get("host").getValueOr("localhost");
 int port = config.get("port").getValueOr(8080);
@@ -461,11 +547,14 @@ int timeout = config.get("timeout").getValueOr(30);
 **方式 2：检查必需字段**
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 必需字段必须存在，不存在就报错
 // 使用 operator bool() - 更简洁！
 Node host = config.get("host");
 if (!host) {
-    std::cerr << "配置错误: " << host.getError() << std::endl;
+    std::cerr << "配置错误：" << host.getError() << std::endl;
     exit(1);
 }
 // 现在可以放心使用
@@ -480,16 +569,13 @@ std::string hostValue = host.getValue<std::string>();
 **方式 3：JSON 解析后验证**
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // JSON 解析后必须检查
 Node doc = Node::fromJson(jsonStr);
 if (!doc) {  // 使用 operator bool() 更简洁
-    std::cerr << "解析失败: " << doc.getError() << std::endl;
-    return false;
-}
-// 解析成功，继续处理...
-```
-if (!doc.isValid()) {
-    std::cerr << "解析失败: " << doc.getError() << std::endl;
+    std::cerr << "解析失败：" << doc.getError() << std::endl;
     return false;
 }
 // 解析成功，继续处理...
@@ -498,9 +584,12 @@ if (!doc.isValid()) {
 **方式 4：数组访问**
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node users = data.get("users");
 if (!users.isValid()) {
-    std::cerr << "没有 users 字段: " << users.getError() << std::endl;
+    std::cerr << "没有 users 字段：" << users.getError() << std::endl;
     return;
 }
 
@@ -543,6 +632,9 @@ for (int i = 0; i < users.size(); i++) {
 #### 常见错误信息
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 Node arr = Node::createArray();
 
@@ -567,6 +659,9 @@ Node::fromJson("{bad}").getError()
 #### 创建 char 节点
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // char 转换为单字符字符串
 Node c('A');
 std::cout << c.toJson(false);  // "A"
@@ -583,6 +678,9 @@ std::cout << uc.toJson(false);  // "C"
 #### 读取 char 值
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node str("Hello");
 
 // 从字符串取第一个字符
@@ -596,6 +694,9 @@ char first = abbr.getValue<char>();  // 'N'
 #### char 类型的安全处理
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 空字符串返回 '\0'
 Node empty("");
 char c1 = empty.getValue<char>();  // '\0'
@@ -615,6 +716,9 @@ char safe = empty.getValueOr<char>('X');  // 'X'
 ### nullptr
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 创建 null 节点
 Node nullNode = Node::fromJson("null");
 std::cout << nullNode.toJson(false);  // "null"
@@ -632,6 +736,9 @@ if (nullNode.isNull()) {
 ### 克隆节点
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node original = Node::createObject();
 original.set("name", "Alice");
 original.set("value", 42);
@@ -647,6 +754,9 @@ std::cout << cloned.get("value").getValue<int64_t>();  // 仍然输出 42
 ### 克隆子节点
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node root = Node::createObject();
 Node sub = root.setObject("nested");
 sub.set("key", "value");
@@ -665,6 +775,9 @@ Node cloned = subRef.clone();
 ### 迭代对象键
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::fromJson(R"({"name":"Alice","age":30,"city":"Beijing"})");
 
 // 获取所有键
@@ -672,12 +785,15 @@ auto keys = obj.keys();
 for (const auto& key : keys) {
     std::cout << key << std::endl;
 }
-// 输出: name, age, city
+// 输出：name, age, city
 ```
 
 ### 迭代数组元素
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node arr = Node::fromJson(R"([1, 2, 3, 4, 5])");
 
 // 通过索引遍历
@@ -685,7 +801,7 @@ for (size_t i = 0; i < arr.size(); i++) {
     int64_t val = arr.at(i).getValue<int64_t>();
     std::cout << val << " ";
 }
-// 输出: 1 2 3 4 5
+// 输出：1 2 3 4 5
 ```
 
 ---
@@ -699,6 +815,9 @@ for (size_t i = 0; i < arr.size(); i++) {
 #### 层次 1：最简单 - getValueOr()（推荐 90% 的场景）
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // ✅ 日常使用：一行代码搞定，不需要 isValid 检查
 std::string host = config.get("host").getValueOr("localhost");
 int port = config.get("port").getValueOr(8080);
@@ -710,17 +829,20 @@ int timeout = config.get("timeout").getValueOr(30);
 #### 层次 2：需要错误信息 - isValid() + getError()
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // ✅ 必需字段或需要详细错误信息时
 Node host = config.get("host");
 if (!host.isValid()) {
-    std::cerr << "配置错误: " << host.getError() << std::endl;
+    std::cerr << "配置错误：" << host.getError() << std::endl;
     exit(1);
 }
 
 // JSON 解析后必须检查
 Node doc = Node::fromJson(jsonStr);
 if (!doc.isValid()) {
-    std::cerr << "解析失败: " << doc.getError() << std::endl;
+    std::cerr << "解析失败：" << doc.getError() << std::endl;
     return false;
 }
 ```
@@ -728,6 +850,9 @@ if (!doc.isValid()) {
 #### 层次 3：操作前安全检查 - isValid()
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // ✅ 从未知来源获得节点时
 Node node = someFunction();
 if (!node.isValid()) {
@@ -747,7 +872,7 @@ node.set("key", "value");
 | 检查必需字段            | isValid()    | `if (!config.get("id").isValid()) ...`   |
 | JSON 解析后验证        | isValid()    | `if (!doc.isValid()) ...`                 |
 | 需要打印错误信息        | isValid()    | 配合 `getError()`                         |
-| 操作节点前（set等）    | isValid()    | `if (node.isValid()) node.set(...)`       |
+| 操作节点前（set 等）    | isValid()    | `if (node.isValid()) node.set(...)`       |
 | 获得未知来源的节点     | isValid()    | `if (!result.isValid()) return`           |
 
 **一句话总结：不确定就用 `getValueOr()`！**
@@ -757,12 +882,15 @@ node.set("key", "value");
 始终使用 `is<T>()` 检查类型后再读取：
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // ✅ 好的做法
 if (node.is<int64_t>()) {
     int64_t value = node.getValue<int64_t>();
 }
 
-// ❌ 避免：可能返回默认值0
+// ❌ 避免：可能返回默认值 0
 int64_t value = node.getValue<int64_t>();
 ```
 
@@ -771,6 +899,9 @@ int64_t value = node.getValue<int64_t>();
 使用生态系统方法高效创建嵌套结构：
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // ✅ 推荐：使用 setObject/setArray 避免拷贝
 Node config = Node::createObject();
 Node db = config.setObject("database");
@@ -791,6 +922,9 @@ config.set("database", temp);  // 产生拷贝
 使用链式调用使代码更简洁：
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // ✅ 好的做法
 Node obj = Node::createObject()
     .set("name", "Alice")
@@ -809,6 +943,9 @@ obj.set("active", true);
 对于大对象，使用引用传递：
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // ✅ 好的做法
 std::string getJson(const Node& node) {
     return node.toJson(true);
@@ -827,6 +964,9 @@ std::string getJson(Node node) {
 ### Q: 如何检查键是否存在？
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::fromJson(R"({"name": "Alice"})");
 
 if (obj.has("name")) {
@@ -837,14 +977,24 @@ if (obj.has("name")) {
 ### Q: 如何删除对象中的键？
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::fromJson(R"({"name": "Alice", "age": 30})");
 
-int64_t age = obj.get("age").getValue<int64_t>();
+// 删除键
+obj.remove("age");
+
+// 链式调用
+obj.remove("name").remove("age");
 ```
 
 ### Q: 如何合并两个 JSON 对象？
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj1 = Node::fromJson(R"({"name": "Alice"})");
 Node obj2 = Node::fromJson(R"({"age": 30})");
 
@@ -878,10 +1028,32 @@ JSON 标准中没有 char 类型，只有字符串类型。将 char 转换为单
 3. 使用 `clone()` 分离需要的部分
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 只保留需要的部分
 Node full = Node::fromJson(largeJsonString);
 Node needed = full.get("data").clone();  // 克隆需要的部分
 // 现在 full 可以被销毁，只保留 needed
+```
+
+### Q: 如何使用命名空间？
+
+JConfigParser 使用 `ConfigParser` 命名空间避免命名冲突：
+
+```cpp
+#include "JConfigParser/Node.h"
+
+// 方式 1: 使用 using directive（推荐）
+using namespace ConfigParser;
+Node obj = Node::createObject();
+
+// 方式 2: 使用完整命名空间
+ConfigParser::Node obj2 = ConfigParser::Node::createObject();
+
+// 方式 3: 使用 using declaration
+using ConfigParser::Node;
+Node obj3 = Node::createObject();
 ```
 
 ---
@@ -889,12 +1061,9 @@ Node needed = full.get("data").clone();  // 克隆需要的部分
 ## 更多示例
 
 查看 `example/` 目录获取更多实用示例：
-- `basic.cpp` - 基础用法
-- `nested.cpp` - 嵌套结构
-- `serialization.cpp` - 序列化
-- `error_handling.cpp` - 错误处理
+- `example.cpp` - 完整的使用示例
 
 ---
 
-**文档版本**: 1.0.0
-**最后更新**: 2026-04-08
+**文档版本**: 1.0.1
+**最后更新**: 2026-04-09

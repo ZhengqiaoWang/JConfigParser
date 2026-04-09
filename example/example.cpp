@@ -1,6 +1,8 @@
 #include "Node.h"
 #include <iostream>
 
+using namespace ConfigParser;
+
 #ifdef _WIN32
 #include <windows.h>
 #endif

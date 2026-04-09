@@ -36,6 +36,9 @@
  * - 提供错误传播机制
  * - 完整的类型检查和类型转换
  */
+namespace ConfigParser
+{
+
 class Node
 {
 private:
@@ -995,11 +998,13 @@ public:
     }
 };
 
+} // namespace ConfigParser
+
 // ==================== 模板特化实现 ====================
 
 // getValue<T>() 特化
 template <>
-inline char Node::getValue<char>() const
+inline char ConfigParser::Node::getValue<char>() const
 {
     if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
     {
@@ -1009,7 +1014,7 @@ inline char Node::getValue<char>() const
 }
 
 template <>
-inline signed char Node::getValue<signed char>() const
+inline signed char ConfigParser::Node::getValue<signed char>() const
 {
     if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
     {
@@ -1019,7 +1024,7 @@ inline signed char Node::getValue<signed char>() const
 }
 
 template <>
-inline unsigned char Node::getValue<unsigned char>() const
+inline unsigned char ConfigParser::Node::getValue<unsigned char>() const
 {
     if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
     {
@@ -1029,7 +1034,7 @@ inline unsigned char Node::getValue<unsigned char>() const
 }
 
 template <>
-inline std::string Node::getValue<std::string>() const
+inline std::string ConfigParser::Node::getValue<std::string>() const
 {
     if (!isValid() || !node_->IsString())
     {
@@ -1039,7 +1044,7 @@ inline std::string Node::getValue<std::string>() const
 }
 
 template <>
-inline const char *Node::getValue<const char *>() const
+inline const char *ConfigParser::Node::getValue<const char *>() const
 {
     if (!isValid() || !node_->IsString())
     {
@@ -1050,7 +1055,7 @@ inline const char *Node::getValue<const char *>() const
 
 // getValueOr<T>() 特化
 template <>
-inline char Node::getValueOr<char>(char &&defaultVal) const
+inline char ConfigParser::Node::getValueOr<char>(char &&defaultVal) const
 {
     if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
     {
@@ -1060,7 +1065,7 @@ inline char Node::getValueOr<char>(char &&defaultVal) const
 }
 
 template <>
-inline signed char Node::getValueOr<signed char>(signed char &&defaultVal) const
+inline signed char ConfigParser::Node::getValueOr<signed char>(signed char &&defaultVal) const
 {
     if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
     {
@@ -1070,7 +1075,7 @@ inline signed char Node::getValueOr<signed char>(signed char &&defaultVal) const
 }
 
 template <>
-inline unsigned char Node::getValueOr<unsigned char>(unsigned char &&defaultVal) const
+inline unsigned char ConfigParser::Node::getValueOr<unsigned char>(unsigned char &&defaultVal) const
 {
     if (!isValid() || !node_->IsString() || node_->GetStringLength() == 0)
     {
@@ -1080,7 +1085,7 @@ inline unsigned char Node::getValueOr<unsigned char>(unsigned char &&defaultVal)
 }
 
 template <>
-inline std::string Node::getValueOr<std::string>(std::string &&defaultVal) const
+inline std::string ConfigParser::Node::getValueOr<std::string>(std::string &&defaultVal) const
 {
     if (!isValid() || !node_->IsString())
     {

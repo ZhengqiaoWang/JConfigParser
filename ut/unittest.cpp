@@ -11,6 +11,8 @@
 #include "JConfigParser/Node.h"
 #endif
 
+using namespace ConfigParser;
+
 DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4822)
 
 // ==================== 构造函数测试 ====================

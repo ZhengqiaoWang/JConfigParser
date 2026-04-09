@@ -1,4 +1,4 @@
-# JConfigParser
+﻿# JConfigParser
 
 [JConfigParser](https://github.com/ZhengqiaoWang/JConfigParser) 是一个基于 RapidJSON 的现代 C++17 JSON 解析库，提供类型安全、易用且高性能的 JSON 操作接口。
 
@@ -10,6 +10,7 @@
 - 🔒 **Safe by Default**: 完善的错误处理，避免异常崩溃
 - 📚 **Rich Features**: 支持对象、数组、字符串、数字、布尔值、null
 - 🧪 **Well Tested**: 92+ 测试用例，92%+ 代码覆盖率
+- 📦 **Namespace**: 使用 `ConfigParser` 命名空间，避免命名冲突
 
 ## 支持的类型
 
@@ -28,6 +29,8 @@
 
 ```cpp
 #include "JConfigParser/Node.h"
+
+using namespace ConfigParser;
 
 // 创建对象
 Node obj = Node::createObject();
@@ -53,6 +56,9 @@ std::cout << obj.toJson(true);  // 格式化输出
 ### 解析 JSON
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // 从字符串解析
 std::string jsonStr = R"({"name": "Bob", "age": 25})";
 Node node = Node::fromJson(jsonStr);
@@ -65,6 +71,9 @@ int age = node.get("age").getValue<int64_t>();
 ### 链式调用
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject()
     .set("name", "Charlie")
     .set("age", 35)
@@ -79,6 +88,9 @@ Node arr = Node::createArray()
 ### 嵌套结构
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 
 // 创建嵌套对象
@@ -99,12 +111,15 @@ std::string city = obj.get("address").get("city").getValue<std::string>();
 ### 错误处理
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node obj = Node::createObject();
 
 // 安全访问：键不存在时返回错误节点
 Node nameNode = obj.get("name");
-if (nameNode.isError()) {
-    std::cout << "Key not found" << std::endl;
+if (!nameNode.isValid()) {
+    std::cout << "Key not found: " << nameNode.getError() << std::endl;
 }
 
 // 使用默认值：键不存在或类型不匹配时返回默认值
@@ -116,7 +131,7 @@ if (numNode.is<int64_t>()) {
 }
 
 // 错误信息
-if (node.isError()) {
+if (!node.isValid()) {
     std::cout << "Error: " << node.getError() << std::endl;
 }
 ```
@@ -124,9 +139,12 @@ if (node.isError()) {
 ### 特殊类型：char
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 // char 类型在 JSON 中表示为单字符字符串
 Node grade('A');
-std::cout << grade.toJson(false);  // 输出: "A"
+std::cout << grade.toJson(false);  // 输出："A"
 
 // 从字符串取第一个字符
 Node str("Hello");
@@ -140,6 +158,9 @@ char empty = Node("").getValueOr<char>('X');  // 返回 'X'（空字符串）
 ### 克隆节点
 
 ```cpp
+#include "JConfigParser/Node.h"
+using namespace ConfigParser;
+
 Node original = Node::createObject();
 original.set("name", "Alice");
 original.set("value", 42);
@@ -180,7 +201,7 @@ ctest
 
 ### 集成到项目
 
-#### 方法1：直接复制头文件
+#### 方法 1：直接复制头文件
 
 将 `include/JConfigParser/` 目录复制到你的项目中，包含头文件即可：
 
@@ -189,7 +210,18 @@ ctest
 target_include_directories(your_target PRIVATE include)
 ```
 
-#### 方法2：使用 CMake
+然后在代码中使用：
+
+```cpp
+#include "JConfigParser/Node.h"
+
+using namespace ConfigParser;
+
+// 或者使用完整命名空间
+ConfigParser::Node obj = ConfigParser::Node::createObject();
+```
+
+#### 方法 2：使用 CMake
 
 ```cmake
 # CMakeLists.txt
@@ -246,6 +278,11 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 更新日志
 
+### v1.0.1 (2026-04-09)
+
+- ✨ 添加 `ConfigParser` 命名空间，避免与其他库的命名冲突
+- 📝 更新文档，添加命名空间使用说明
+
 ### v1.0.0 (2026-04-08)
 
 - ✨ 首次发布
@@ -259,8 +296,8 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 联系方式
 
-- 项目主页: https://github.com/ZhengqiaoWang/JConfigParser
-- 问题反馈: https://github.com/ZhengqiaoWang/JConfigParser/issues
+- 项目主页：https://github.com/ZhengqiaoWang/JConfigParser
+- 问题反馈：https://github.com/ZhengqiaoWang/JConfigParser/issues
 
 ---
 
